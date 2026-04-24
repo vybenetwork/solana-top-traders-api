@@ -7,6 +7,7 @@
   "scripts": {
     "start": "tsx src/server.ts",
     "dev": "tsx src/server.ts",
+    "restart:dev": "bash scripts/restart-dev.sh",
     "dev:tunnel": "TUNNEL=1 tsx src/server.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
