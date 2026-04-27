@@ -98,7 +98,11 @@ const tokenTopPnlLoading = document.getElementById('tokenTopPnlLoading') as HTML
 const tokenTopPnlError = document.getElementById('tokenTopPnlError') as HTMLElement;
 const tokenTopPnlMeta = document.getElementById('tokenTopPnlMeta') as HTMLElement;
 const tokenTopPnlBody = document.getElementById('tokenTopPnlBody') as HTMLElement;
+const tokenTopPnlRealizedHeader = document.getElementById('tokenTopPnlRealizedHeader') as HTMLElement;
+const tokenTopPnlUnrealizedHeader = document.getElementById('tokenTopPnlUnrealizedHeader') as HTMLElement;
+const tokenTopPnlVolumeHeader = document.getElementById('tokenTopPnlVolumeHeader') as HTMLElement;
 const tokenTopPnl24hVolumeHeader = document.getElementById('tokenTopPnl24hVolumeHeader') as HTMLElement;
+const tokenTopPnlTradesHeader = document.getElementById('tokenTopPnlTradesHeader') as HTMLElement;
 const tokenTopPnl24hTradesHeader = document.getElementById('tokenTopPnl24hTradesHeader') as HTMLElement;
 
 const SEARCH_MODE_KEY = 'topTradersSearchMode';
@@ -216,6 +220,13 @@ function applyTokenTopPnl24hColumnVisibility(): void {
   const resolution = tokenTopPnlResolution.value.trim().toLowerCase();
   const is24hResolution = resolution === '1d' || resolution === '24h' || resolution === '24hr';
   const show24hColumns = !is24hResolution;
+  const resolutionLabel = is24hResolution ? '24h' : tokenTopPnlResolution.value.trim();
+  tokenTopPnlRealizedHeader.textContent = `Realized PnL (${resolutionLabel})`;
+  tokenTopPnlUnrealizedHeader.textContent = `Unrealized PnL (${resolutionLabel})`;
+  tokenTopPnlVolumeHeader.textContent = `Volume (${resolutionLabel})`;
+  tokenTopPnlTradesHeader.textContent = `Trades (${resolutionLabel})`;
+  tokenTopPnl24hVolumeHeader.textContent = 'Volume (24h)';
+  tokenTopPnl24hTradesHeader.textContent = 'Trades (24h)';
   tokenTopPnl24hVolumeHeader.hidden = !show24hColumns;
   tokenTopPnl24hTradesHeader.hidden = !show24hColumns;
   document.querySelectorAll<HTMLElement>('.token-top-pnl-24h-col').forEach((cell) => {
