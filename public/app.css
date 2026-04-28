@@ -1153,8 +1153,8 @@ button:active {
 }
 
 .wallet-logo-avatar {
-  width: 22px;
-  height: 22px;
+  width: 14px;
+  height: 14px;
   border-radius: 999px;
   object-fit: cover;
   display: inline-block;
@@ -1178,15 +1178,82 @@ button:active {
   top: 0;
   z-index: 1;
   background: #18181b;
+  font-size: 0.56rem;
+  line-height: 1.1;
 }
 
 .wallet-assets-table {
-  min-width: 1450px;
+  min-width: 800px;
+  table-layout: fixed;
+}
+
+.wallet-assets-table th,
+.wallet-assets-table td {
+  padding: 0.22rem 0.26rem;
+  font-size: 0.66rem;
+}
+
+.wallet-assets-table th:nth-child(2),
+.wallet-assets-table td:nth-child(2) {
+  width: 92px;
+  max-width: 92px;
+}
+
+.wallet-assets-table th:nth-child(1),
+.wallet-assets-table td:nth-child(1) {
+  width: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  padding-left: 0.05rem !important;
+  padding-right: 0.15rem !important;
+}
+
+.wallet-assets-table th:nth-child(3),
+.wallet-assets-table td:nth-child(3) {
+  width: 42px;
+}
+
+.wallet-assets-table th:nth-child(4),
+.wallet-assets-table td:nth-child(4),
+.wallet-assets-table th:nth-child(5),
+.wallet-assets-table td:nth-child(5) {
+  width: 62px;
+}
+
+.wallet-assets-table th:nth-child(6),
+.wallet-assets-table td:nth-child(6),
+.wallet-assets-table th:nth-child(7),
+.wallet-assets-table td:nth-child(7) {
+  width: 50px;
+}
+
+.wallet-assets-table th:nth-child(8),
+.wallet-assets-table td:nth-child(8),
+.wallet-assets-table th:nth-child(10),
+.wallet-assets-table td:nth-child(10) {
+  width: 64px;
+}
+
+.wallet-assets-table th:nth-child(9),
+.wallet-assets-table td:nth-child(9),
+.wallet-assets-table th:nth-child(11),
+.wallet-assets-table td:nth-child(11) {
+  width: 64px;
+}
+
+.wallet-assets-table th:nth-child(12),
+.wallet-assets-table td:nth-child(12) {
+  width: 86px;
 }
 
 .wallet-asset-icon-cell {
-  width: 44px;
-  min-width: 44px;
+  width: 10px;
+  min-width: 10px;
+  max-width: 10px;
+  padding-left: 0.1rem !important;
+  padding-right: 0.1rem !important;
+  text-align: center;
+  overflow: hidden;
 }
 
 .wallet-asset-mint {
@@ -1195,26 +1262,13 @@ button:active {
   margin-top: 0.2rem;
 }
 
-.wallet-asset-labels-col,
-.wallet-asset-labels-cell {
-  width: 56px;
-  min-width: 56px;
-  max-width: 56px;
-}
-
-.wallet-asset-labels-cell {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .wallet-asset-tx-col,
 .wallet-asset-tx-cell {
-  min-width: 88px;
+  min-width: 72px;
 }
 
 .wallet-tx-datetime {
-  font-size: 0.36rem;
+  font-size: 0.56rem;
   color: #d4d4d8;
   line-height: 1.2;
   white-space: nowrap;
@@ -1222,10 +1276,9 @@ button:active {
 
 .wallet-tx-link {
   color: #60a5fa;
-  font-size: 0.52rem;
+  font-size: 0.62rem;
   font-weight: 600;
   text-decoration: none;
-  text-transform: uppercase;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
@@ -1237,18 +1290,53 @@ button:active {
 .wallet-tx-sig {
   color: #a1a1aa;
   font-size: 0.36rem;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.05;
 }
 
-.wallet-amt-vol-cell {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.05rem;
+.wallet-tx-popup-icon {
+  margin-left: 0.2rem;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.wallet-tx-link.wallet-tx-tone--buy,
+.wallet-tx-sig.wallet-tx-tone--buy {
+  color: #86efac;
+}
+
+.wallet-tx-link.wallet-tx-tone--sell,
+.wallet-tx-sig.wallet-tx-tone--sell {
+  color: #fca5a5;
 }
 
 .wallet-amt-vol-usd {
   color: #86efac;
+}
+
+.wallet-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.06rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid #52525b;
+  color: #d4d4d8;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  line-height: 1.1;
+}
+
+.wallet-status-badge--open {
+  border-color: #22c55e;
+  color: #86efac;
+}
+
+.wallet-status-badge--closed {
+  border-color: #ef4444;
+  color: #fca5a5;
 }
 
 .trades-summary-markets {
@@ -1305,7 +1393,7 @@ tr:hover td {
 
 td .mono {
   font-family: ui-monospace, monospace;
-  font-size: 0.8rem;
+  font-size: 0.6rem;
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;

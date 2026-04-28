@@ -412,53 +412,79 @@ function renderLogoImage(url: string | undefined, alt: string): string {
 function formatBlocktime(blocktime: number | null | undefined): string {
   const num = Number(blocktime);
   if (!Number.isFinite(num) || num <= 0) return '—';
-  return new Date(num * 1000).toLocaleString(undefined, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  const d = new Date(num * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const hh = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  const dd = pad(d.getDate());
+  const month = pad(d.getMonth() + 1);
+  const yy = pad(d.getFullYear() % 100);
+  return `${hh}:${mm} ${dd}/${month}/${yy}`;
 }
 
-function renderSignaturePopupLink(signature: string | null | undefined): string {
+function renderSignaturePopupLink(signature: string | null | undefined, label = 'Open TX'): string {
   const sig = (signature || '').trim();
   if (!sig) return '—';
   const href = `https://solscan.io/tx/${encodeURIComponent(sig)}`;
   const short = truncateAddress(sig);
-  return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="wallet-tx-link" title="${sig}" onclick="window.open(this.href,'solscanTx','popup=yes,width=1100,height=780,noopener,noreferrer'); return false;">Open TX</a><div class="mono wallet-tx-sig" title="${sig}">${short}</div>`;
+  const lowerLabel = label.toLowerCase();
+  const toneClass = lowerLabel.includes('buy')
+    ? 'wallet-tx-tone--buy'
+    : lowerLabel.includes('sell')
+      ? 'wallet-tx-tone--sell'
+      : '';
+  return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="wallet-tx-link ${toneClass}" title="${sig}" onclick="window.open(this.href,'solscanTx','popup=yes,width=1100,height=780,noopener,noreferrer'); return false;">${label}<span class="wallet-tx-popup-icon" aria-hidden="true">↗</span></a><div class="mono wallet-tx-sig ${toneClass}" title="${sig}">${short}</div>`;
 }
 
-function renderLatestTradeCell(blocktime: number | null | undefined, signature: string | null | undefined): string {
-  return `<div class="wallet-tx-datetime">${formatBlocktime(blocktime)}</div>${renderSignaturePopupLink(signature)}`;
-}
-
-function renderAmountVolumeCell(
-  amount: number | string | null | undefined,
-  volumeUsd: number | string | null | undefined
+function renderLatestTradeCell(
+  blocktime: number | null | undefined,
+  signature: string | null | undefined,
+  label = 'Open TX'
 ): string {
-  const amountText = formatNum(amount);
-  const usdText = formatUsdFull(Number(volumeUsd));
-  return `<div class="wallet-amt-vol-cell">
-    <span>${amountText}</span>
-    <span class="wallet-amt-vol-usd">${usdText}</span>
-  </div>`;
+  return `<div class="wallet-tx-datetime">${formatBlocktime(blocktime)}</div>${renderSignaturePopupLink(signature, label)}`;
 }
 
-function formatRemainingAmountCell(
-  buyAmount: number | string | null | undefined,
-  sellAmount: number | string | null | undefined
-): string {
-  const buy = Number(buyAmount);
-  const sell = Number(sellAmount);
-  const remaining = (Number.isFinite(buy) ? buy : 0) - (Number.isFinite(sell) ? sell : 0);
-  const text = formatNum(remaining);
-  if (text === '—') return text;
-  if (remaining === 0) {
-    return `<span class="usd-tone usd-tone--neutral">${text}</span>`;
+function pickLatestTradeSide(metric: WalletPnlTokenMetric): {
+  blocktime: number | undefined;
+  signature: string | undefined;
+  label: string;
+} {
+  const buyBlock = Number(metric.buys?.latestTradeBlocktime);
+  const sellBlock = Number(metric.sells?.latestTradeBlocktime);
+  const hasBuy = Number.isFinite(buyBlock) && buyBlock > 0;
+  const hasSell = Number.isFinite(sellBlock) && sellBlock > 0;
+
+  if (hasBuy && (!hasSell || buyBlock >= sellBlock)) {
+    return {
+      blocktime: buyBlock,
+      signature: (metric.buys?.latestTradeSignature || '').trim() || undefined,
+      label: 'Open Buy TX',
+    };
   }
-  return text;
+  if (hasSell) {
+    return {
+      blocktime: sellBlock,
+      signature: (metric.sells?.latestTradeSignature || '').trim() || undefined,
+      label: 'Open Sell TX',
+    };
+  }
+  return {
+    blocktime: Number(metric.latestTradeBlocktime) || undefined,
+    signature: undefined,
+    label: 'Open TX',
+  };
+}
+
+function renderStatusBadge(status: string | null | undefined): string {
+  const value = (status || '').trim().toLowerCase();
+  if (!value) return '—';
+  if (value === 'open') {
+    return '<span class="wallet-status-badge wallet-status-badge--open">open</span>';
+  }
+  if (value === 'closed') {
+    return '<span class="wallet-status-badge wallet-status-badge--closed">closed</span>';
+  }
+  return `<span class="wallet-status-badge">${value}</span>`;
 }
 
 function applyTokenTopPnl24hColumnVisibility(): void {
@@ -767,18 +793,16 @@ function renderWalletPnl(
             <tr>
               <th>Icon</th>
               <th>Asset</th>
-              <th class="wallet-asset-labels-col">Labels</th>
               <th>Status</th>
               <th style="text-align:right">Real. PnL</th>
               <th style="text-align:right">Unreal. PnL</th>
-              <th style="text-align:right">Buys (tx)</th>
-              <th style="text-align:right">Sells (tx)</th>
-              <th style="text-align:right">Buy amt / vol</th>
-              <th style="text-align:right">Sell amt / vol</th>
-              <th style="text-align:right">Remaining amnt</th>
+              <th style="text-align:right">Buys</th>
+              <th style="text-align:right">Sells</th>
+              <th style="text-align:right">Buy amt</th>
+              <th style="text-align:right">Buy vol</th>
+              <th style="text-align:right">Sell amt</th>
+              <th style="text-align:right">Sell vol</th>
               <th>Latest TX</th>
-              <th class="wallet-asset-tx-col">Buy TX</th>
-              <th class="wallet-asset-tx-col">Sell TX</th>
             </tr>
           </thead>
           <tbody>${tokenMetrics.map((metric) => {
@@ -791,22 +815,20 @@ function renderWalletPnl(
       const assetCell = mint
         ? `${tokenLink}<div class="wallet-asset-mint mono">${truncateAddress(mint)}</div>`
         : tokenLink;
-      const labels = (metric.tokenLabels ?? []).filter((label) => (label || '').trim() !== '');
+      const latestTrade = pickLatestTradeSide(metric);
       return `<tr>
         <td class="wallet-asset-icon-cell">${iconCell}</td>
         <td>${assetCell}</td>
-        <td class="wallet-asset-labels-cell">${labels.length ? labels.join(', ') : '—'}</td>
-        <td>${metric.status ?? '—'}</td>
+        <td>${renderStatusBadge(metric.status)}</td>
         <td style="text-align:right">${formatUsdCell(metric.realizedPnlUsd)}</td>
         <td style="text-align:right">${formatUsdCell(metric.unrealizedPnlUsd)}</td>
         <td style="text-align:right">${formatTradesCountHeatCell(metric.buys?.transactionCount, buysTxMin, buysTxMax)}</td>
         <td style="text-align:right">${formatTradesCountHeatCell(metric.sells?.transactionCount, sellsTxMin, sellsTxMax)}</td>
-        <td style="text-align:right">${renderAmountVolumeCell(metric.buys?.tokenAmount, metric.buys?.volumeUsd)}</td>
-        <td style="text-align:right">${renderAmountVolumeCell(metric.sells?.tokenAmount, metric.sells?.volumeUsd)}</td>
-        <td style="text-align:right">${formatRemainingAmountCell(metric.buys?.tokenAmount, metric.sells?.tokenAmount)}</td>
-        <td>${formatBlocktime(metric.latestTradeBlocktime)}</td>
-        <td class="wallet-asset-tx-cell">${renderLatestTradeCell(metric.buys?.latestTradeBlocktime, metric.buys?.latestTradeSignature)}</td>
-        <td class="wallet-asset-tx-cell">${renderLatestTradeCell(metric.sells?.latestTradeBlocktime, metric.sells?.latestTradeSignature)}</td>
+        <td style="text-align:right">${formatNum(metric.buys?.tokenAmount)}</td>
+        <td style="text-align:right"><span class="wallet-amt-vol-usd">${formatUsdFull(metric.buys?.volumeUsd)}</span></td>
+        <td style="text-align:right">${formatNum(metric.sells?.tokenAmount)}</td>
+        <td style="text-align:right"><span class="wallet-amt-vol-usd">${formatUsdFull(metric.sells?.volumeUsd)}</span></td>
+        <td class="wallet-asset-tx-cell">${renderLatestTradeCell(latestTrade.blocktime, latestTrade.signature, latestTrade.label)}</td>
       </tr>`;
     }).join('')}</tbody>
         </table>
