@@ -1317,6 +1317,11 @@ td .mono {
   color: #fca5a5;
 }
 
+.trade-count-heat {
+  color: hsl(calc(120 - (var(--trade-grad-t, 0) * 120)) 85% 66%);
+  font-weight: 600;
+}
+
 /* Scrollbar: black track, grey thumb */
 html {
   scrollbar-color: #71717a #000000; /* thumb, track */

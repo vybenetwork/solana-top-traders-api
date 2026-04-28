@@ -307,6 +307,35 @@ function formatTradesCountCell(n: number | null | undefined): string {
   return text;
 }
 
+function calcTradeGradientT(n: number | null | undefined, min: number, max: number): number {
+  const value = Number(n);
+  if (!Number.isFinite(value)) return 0;
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return 0;
+  const safeMax = Math.max(min, max);
+  const greenThreshold = 9;
+  if (value <= greenThreshold || safeMax <= greenThreshold) return 0;
+  const normalized = (value - greenThreshold) / (safeMax - greenThreshold);
+  const clamped = Math.max(0, Math.min(1, normalized));
+  // Any value above 9 should start shifting away from pure green.
+  return 0.2 + (clamped * 0.8);
+}
+
+function formatTradesCountHeatCell(
+  n: number | null | undefined,
+  min: number,
+  max: number
+): string {
+  const text = formatIntFull(n);
+  if (text === '—') return text;
+  const num = Number(n);
+  if (num === 0) {
+    return `<span class="usd-tone usd-tone--neutral">${text}</span>`;
+  }
+  const t = calcTradeGradientT(n, min, max);
+  const hardT = num > 300 ? 1 : num > 100 ? 0.8 : t;
+  return `<span class="trade-count-heat" style="--trade-grad-t:${hardT.toFixed(4)}">${text}</span>`;
+}
+
 function pickPreferredNumber(
   preferred: number | null | undefined,
   fallback: number | null | undefined
@@ -820,6 +849,18 @@ function renderTokenTopPnlTraders(
   trades24hByTrader: Record<string, number>
 ): void {
   const list = data.data || [];
+  const tradesValues = list.map((row) => toNum(row.tradesCount)).filter((value) => Number.isFinite(value));
+  const tradesMin = tradesValues.length ? Math.min(...tradesValues) : 0;
+  const tradesMax = tradesValues.length ? Math.max(...tradesValues) : 0;
+  const trades24hValues = list
+    .map((row) => {
+      const addr = row.traderAddress;
+      if (!addr || !Object.prototype.hasOwnProperty.call(trades24hByTrader, addr)) return NaN;
+      return toNum(trades24hByTrader[addr]);
+    })
+    .filter((value) => Number.isFinite(value));
+  const trades24hMin = trades24hValues.length ? Math.min(...trades24hValues) : 0;
+  const trades24hMax = trades24hValues.length ? Math.max(...trades24hValues) : 0;
   tokenTopPnlMeta.textContent = list.length
     ? `GET /v4/tokens/${query}/top-pnl-traders with ${queryParams.toString()} returned ${list.length} row(s).`
     : `GET /v4/tokens/${query}/top-pnl-traders returned 0 rows.`;
@@ -840,8 +881,8 @@ function renderTokenTopPnlTraders(
         <td style="text-align:right">${formatUsdCell(row.unrealizedPnlUsd)}</td>
         <td style="text-align:right">${formatUsdCell(row.totalVolumeUsd)}</td>
         <td class="token-top-pnl-24h-col" style="text-align:right">${formatUsdCell(vol24h)}</td>
-        <td style="text-align:right">${formatTradesCountCell(row.tradesCount)}</td>
-        <td class="token-top-pnl-24h-col" style="text-align:right">${formatTradesCountCell(trades24h)}</td>
+        <td style="text-align:right">${formatTradesCountHeatCell(row.tradesCount, tradesMin, tradesMax)}</td>
+        <td class="token-top-pnl-24h-col" style="text-align:right">${formatTradesCountHeatCell(trades24h, trades24hMin, trades24hMax)}</td>
       </tr>`;
     }).join('')
     : '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="token-top-pnl-24h-col">—</td><td>—</td><td class="token-top-pnl-24h-col">—</td></tr>';
@@ -1236,7 +1277,9 @@ function renderPnlDistributionBars(
     return;
   }
 
-  const expandedGroups = maxGroups === 9 ? expandPnlGroupsToTarget(groups, values, maxGroups) : groups;
+  const expandedGroups = (maxGroups === 9 || maxGroups === 8)
+    ? expandPnlGroupsToTarget(groups, values, maxGroups)
+    : groups;
   const limitedGroups = applyMaxPnlGroups(expandedGroups, maxGroups);
   const maxCount = Math.max(1, ...limitedGroups.map((g) => g.count));
   target.innerHTML = limitedGroups
