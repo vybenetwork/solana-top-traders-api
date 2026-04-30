@@ -558,9 +558,26 @@ function renderWalletPieCard(title: string, slices: WalletPieSlice[]): string {
     .filter((slice) => slice.value > 0);
   const total = normalized.reduce((sum, slice) => sum + slice.value, 0);
   if (total <= 0) {
-    return `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--pie wallet-pnl-empty">
+    const emptyBg = buildPieGradientWithGaps([0, 0], ['#3b82f6', '#22c55e']);
+    const dash = '—';
+    const legendHtml = [
+      ['#3b82f6'],
+      ['#22c55e'],
+    ]
+      .map(
+        ([color]) => `<div class="wallet-pnl-pie-legend-item">
+        <span class="wallet-pnl-pie-legend-swatch" style="background:${color}"></span>
+        <span class="wallet-pnl-pie-legend-label">${dash}</span>
+        <span class="wallet-pnl-pie-legend-meta">${dash} (${dash})</span>
+      </div>`
+      )
+      .join('');
+    return `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--pie">
       <h3 class="token-stats-group-title"><span>${title}</span></h3>
-      <p class="wallet-pnl-pie-empty">No data available.</p>
+      <div class="wallet-pnl-pie-wrap">
+        <div class="wallet-pnl-pie-chart" role="img" aria-label="${title}" style="background:${emptyBg}"></div>
+        <div class="wallet-pnl-pie-legend">${legendHtml}</div>
+      </div>
     </section>`;
   }
   const pctSlices = normalized.map((slice) => (slice.value / total) * 100);
@@ -650,8 +667,8 @@ function buildWalletPnlPlaceholder(): string {
   }).join('');
 
   const pieStackPlaceholderHtml = `<div class="wallet-pnl-pie-stack">
-      ${renderWalletPieCard('Asset status split', [{ label: '—', value: 1, color: '#334155' }])}
-      ${renderWalletPieCard('Winning vs Losing trades', [{ label: '—', value: 1, color: '#334155' }])}
+      ${renderWalletPieCard('Asset status split', [])}
+      ${renderWalletPieCard('Winning vs Losing trades', [])}
     </div>`;
 
   return `<div class="wallet-pnl-layout">
@@ -1482,7 +1499,7 @@ function renderPieLegendRow(label: string, percentage: number, volume: string, c
     <div class="token-supply-legend-content">
       <div class="token-supply-legend-label">${label}</div>
       <ul class="token-supply-legend-sublist">
-        <li><span class="token-supply-legend-pct">${formatPctSmart(percentage)}</span> <span class="token-supply-legend-usd">(${volume})</span></li>
+        <li><span class="token-supply-legend-pct">${formatPctSmart(percentage)}</span> <span class="token-supply-legend-token">(</span><span class="token-supply-legend-usd">${volume}</span><span class="token-supply-legend-token">)</span></li>
       </ul>
     </div>
   </div>`;
@@ -1495,7 +1512,7 @@ function renderPieLegendRowPlaceholder(label: string, color: string): string {
     <div class="token-supply-legend-content">
       <div class="token-supply-legend-label">${label}</div>
       <ul class="token-supply-legend-sublist">
-        <li><span class="token-supply-legend-pct">${dash}</span> <span class="token-supply-legend-usd">(${dash})</span></li>
+        <li><span class="token-supply-legend-pct">${dash}</span> <span class="token-supply-legend-token">(${dash} • </span><span class="token-supply-legend-usd">${dash}</span><span class="token-supply-legend-token">)</span></li>
       </ul>
     </div>
   </div>`;
@@ -1530,7 +1547,7 @@ function applyTokenModeChartsPlaceholder(): void {
   const is24hrResolution = resolutionLabel.toLowerCase() === '24hr';
 
   tokenSupplyPie.style.background = buildPieGradientWithGaps(
-    [1, 1, 1, 1],
+    [0, 0, 0, 0],
     ['#3b82f6', '#2563eb', '#1d4ed8', '#27272a']
   );
   tokenSupplyLegend.innerHTML = [
@@ -1543,8 +1560,8 @@ function applyTokenModeChartsPlaceholder(): void {
   tokenPnlBars24h.innerHTML = Array.from({ length: 9 }, () => buildTokenPnlBarPlaceholderRow('neutral')).join('');
 
   tokenSupplyPieTotal.style.background = showTop101
-    ? buildPieGradientWithGaps([1, 1, 1], ['#3b82f6', '#2563eb', '#1d4ed8'])
-    : buildPieGradientWithGaps([1, 1], ['#3b82f6', '#2563eb']);
+    ? buildPieGradientWithGaps([0, 0, 0], ['#3b82f6', '#2563eb', '#1d4ed8'])
+    : buildPieGradientWithGaps([0, 0], ['#3b82f6', '#2563eb']);
   tokenSupplyLegendTotal.innerHTML = [
     renderPieLegendRowPlaceholder('Top 10 traders', '#3b82f6'),
     renderPieLegendRowPlaceholder('Top 11-100 traders', '#2563eb'),

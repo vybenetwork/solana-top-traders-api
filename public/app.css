@@ -852,6 +852,10 @@ button:active {
   color: #f4f4f5;
 }
 
+.token-supply-legend-token {
+  color: #a1a1aa;
+}
+
 .token-supply-legend-usd {
   color: #86efac;
 }
@@ -1294,10 +1298,11 @@ button:active {
   inset: 27%;
   border-radius: 50%;
   z-index: 1;
-  background: linear-gradient(165deg, #15151a 0%, #0e0e12 50%, #0a0a0d 100%);
+  background: linear-gradient(165deg, #15151a 0%, #101014 50%, #0c0c10 100%);
   box-shadow:
     inset 0 2px 5px rgba(0, 0, 0, 0.55),
     0 0 0 1px rgba(255, 255, 255, 0.05);
+  pointer-events: none;
 }
 
 .wallet-pnl-pie-legend {
