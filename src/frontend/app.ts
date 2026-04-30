@@ -724,7 +724,7 @@ function renderWalletPieCard(title: string, slices: WalletPieSlice[]): string {
     const dash = '—';
     const t = title.toLowerCase();
     const isWinLose = t.includes('winning') || t.includes('losing');
-    const isOpenClosed = t.includes('opened') && t.includes('closed');
+    const isOpenClosed = t.includes('open') && t.includes('closed') && t.includes('position');
     const neutralRing = '#27272a';
     const neutralSwatch = '#52525b';
     const emptyBg = buildPieGradientWithGaps([1], [neutralRing]);
@@ -855,7 +855,7 @@ function buildWalletPnlPlaceholder(): string {
   }).join('');
 
   const pieStackPlaceholderHtml = `<div class="wallet-pnl-pie-stack">
-      ${renderWalletPieCard('Opened VS Closed Positions', [])}
+      ${renderWalletPieCard('Open VS Closed Positions', [])}
       ${renderWalletPieCard('Winning vs Losing Trades', [])}
     </div>`;
 
@@ -1356,12 +1356,12 @@ function renderWalletPnl(
     const lose = Math.max(0, Math.round(Number(mergedSummary.losingTradesCount) || 0));
     return [
       { label: 'Winning', value: win, color: '#4ade80', avgGainMult: winAvgGainMult },
-      { label: 'Losing', value: lose, color: '#64748b', avgGainMult: loseAvgGainMult },
+      { label: 'Losing', value: lose, color: '#6b3232', avgGainMult: loseAvgGainMult },
     ];
   })();
 
   const pieStackHtml = `<div class="wallet-pnl-pie-stack">
-      ${renderWalletPieCard('Opened VS Closed Positions', statusSlices)}
+      ${renderWalletPieCard('Open VS Closed Positions', statusSlices)}
       ${renderWalletPieCard('Winning vs Losing Trades', winningLosingTradeSlices)}
     </div>`;
 
