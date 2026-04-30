@@ -106,11 +106,16 @@ const searchModeSwitchLabel = document.getElementById('searchModeSwitchLabel') a
 const fetchActions = document.getElementById('fetchActions') as HTMLElement;
 const walletActionsTarget = document.getElementById('walletActionsTarget') as HTMLElement;
 const tokenFetchSlot = document.getElementById('tokenFetchSlot') as HTMLElement;
+const tokenLoadingSlot = document.getElementById('tokenLoadingSlot') as HTMLElement;
+const walletLoadingSlot = document.getElementById('walletLoadingSlot') as HTMLElement;
 const fetchAllBtn = document.getElementById('fetchAll') as HTMLButtonElement;
 const loadingIndicator = document.getElementById('loadingIndicator') as HTMLElement;
 const tokenOnlyControls = document.getElementById('tokenOnlyControls') as HTMLElement;
+const walletLabelField = document.getElementById('walletLabelField') as HTMLElement;
+const walletPageField = document.getElementById('walletPageField') as HTMLElement;
 
 const walletLabel = document.getElementById('walletLabel') as HTMLSelectElement;
+const walletTopTradersResolution = document.getElementById('walletTopTradersResolution') as HTMLSelectElement;
 const walletSortDirection = document.getElementById('walletSortDirection') as HTMLSelectElement;
 const walletPnlMintAddress = document.getElementById('walletPnlMintAddress') as HTMLInputElement;
 const walletPnlSortField = document.getElementById('walletPnlSortField') as HTMLSelectElement;
@@ -183,7 +188,7 @@ const WALLET_PNL_TREND_LEDE =
 const WALLET_PNL_PLACEHOLDER_ASSET_ROW_COUNT = 12;
 
 function walletPnlTradingLedeInnerHtml(): string {
-  const r = WALLET_TOP_TRADERS_RESOLUTION;
+  const r = getWalletResolution();
   return `Realized and unrealized PnL plus key trade metrics for the <strong>${r}</strong> window used when wallet PnL is fetched.`;
 }
 
@@ -196,8 +201,6 @@ function resolveTokenLogoSrc(logoUrl: string | undefined, mintAddress: string | 
 }
 const DEFAULT_TOKEN_RESOLUTION = '30d';
 const DEFAULT_WALLET_RESOLUTION = '7d';
-/** Fixed query params for GET /v4/wallets/top-traders (resolution & sort field removed from UI). */
-const WALLET_TOP_TRADERS_RESOLUTION = DEFAULT_WALLET_RESOLUTION;
 const WALLET_TOP_TRADERS_SORT_FIELD = 'realizedPnlUsd';
 let lastTokenResolutionBeforeWalletSwitch: string = DEFAULT_TOKEN_RESOLUTION;
 
@@ -214,7 +217,17 @@ function getTokenResolutionAfterWalletSwitch(): string {
 }
 
 function applyWalletTopTradersTitle(): void {
-  walletTopTradersTitle.textContent = `Top traders (by realized PnL, ${WALLET_TOP_TRADERS_RESOLUTION})`;
+  walletTopTradersTitle.textContent = `Top traders (by realized PnL, ${getWalletResolution()})`;
+}
+
+function normalizeWalletResolution(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === '1d' || normalized === '7d' || normalized === '30d') return normalized;
+  return DEFAULT_WALLET_RESOLUTION;
+}
+
+function getWalletResolution(): string {
+  return normalizeWalletResolution(walletTopTradersResolution?.value || DEFAULT_WALLET_RESOLUTION);
 }
 
 function getSearchMode(): SearchMode {
@@ -252,13 +265,20 @@ function applySearchModeUI(): void {
   topTradersSection.hidden = tokenMode;
   tokenTopPnlSection.hidden = !tokenMode;
   tokenOnlyControls.hidden = !tokenMode;
-  if (tokenMode) tokenFetchSlot.appendChild(fetchActions);
-  else walletActionsTarget.appendChild(fetchActions);
+  if (tokenMode) {
+    tokenFetchSlot.appendChild(fetchActions);
+    tokenLoadingSlot.appendChild(loadingIndicator);
+  } else {
+    walletActionsTarget.appendChild(fetchActions);
+    walletLoadingSlot.appendChild(loadingIndicator);
+  }
   document
     .querySelectorAll<HTMLElement>('.wallet-only-control, .wallet-only-row')
     .forEach((el) => {
       el.hidden = tokenMode;
     });
+  walletLabelField.hidden = true;
+  walletPageField.hidden = true;
   document.querySelectorAll<HTMLElement>('.token-only-control').forEach((el) => {
     el.hidden = !tokenMode;
   });
@@ -567,9 +587,8 @@ function buildWalletPnlPlaceholder(): string {
             ${renderWalletProfileAvatar(undefined, dash)}
           </div>
           <dl class="token-stats wallet-pnl-kv wallet-pnl-profile-kv">
-            <dt>Name</dt><dd>${dash}</dd>
-            <dt>X</dt><dd>${dash}</dd>
-            <dt>Labels</dt><dd>${dash}</dd>
+            <dt>Name:</dt><dd class="wallet-pnl-profile-value-emphasis">${dash}</dd>
+            <dt>X ACC:</dt><dd class="wallet-pnl-profile-value-emphasis">${dash}</dd>
           </dl>
         </div>
       </section>
@@ -810,7 +829,7 @@ function renderToken(t: TokenData): void {
 
 function buildWalletTopTraderParams(mode: SearchMode, query: string): URLSearchParams {
   const params = new URLSearchParams({
-    resolution: WALLET_TOP_TRADERS_RESOLUTION,
+    resolution: getWalletResolution(),
     limit: walletLimit.value,
     page: String(Math.max(0, Number(walletPage.value) || 0)),
   });
@@ -835,7 +854,7 @@ function looksLikeSolanaAddress(value: string): boolean {
 
 function buildWalletPnlParams(): URLSearchParams {
   const params = new URLSearchParams({
-    resolution: WALLET_TOP_TRADERS_RESOLUTION,
+    resolution: getWalletResolution(),
     limit: walletLimit.value,
     page: String(Math.max(0, Number(walletPage.value) || 0)),
   });
@@ -917,6 +936,9 @@ function renderWalletPnl(
   };
 
   const profileLabels = (topTraderRow?.accountLabels ?? []).filter((label) => (label || '').trim() !== '');
+  const baseName = topTraderRow?.accountName || truncateAddress(ownerAddress);
+  const labelSuffix = profileLabels.length ? ` (${profileLabels.join(', ')})` : '';
+  const nameDisplay = `${baseName}${labelSuffix}`;
   const walletProfileHtml = `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--profile">
       <h3 class="token-stats-group-title"><span>Wallet profile</span></h3>
       <div class="wallet-pnl-profile-header">
@@ -924,9 +946,8 @@ function renderWalletPnl(
           ${renderWalletProfileAvatar(topTraderRow?.accountLogoUrl, topTraderRow?.accountName || ownerAddress)}
         </div>
         <dl class="token-stats wallet-pnl-kv wallet-pnl-profile-kv">
-          <dt>Name</dt><dd><a href="https://vybe.fyi/wallets/${encodeURIComponent(ownerAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${ownerAddress}">${topTraderRow?.accountName || truncateAddress(ownerAddress)}</a></dd>
-          <dt>X</dt><dd>${renderXProfileLink(topTraderRow?.accountTwitterUrl)}</dd>
-          <dt>Labels</dt><dd>${profileLabels.length ? profileLabels.join(', ') : '—'}</dd>
+          <dt>Name:</dt><dd class="wallet-pnl-profile-value-emphasis"><a href="https://vybe.fyi/wallets/${encodeURIComponent(ownerAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${ownerAddress}">${nameDisplay}</a></dd>
+          <dt>X ACC:</dt><dd class="wallet-pnl-profile-value-emphasis">${renderXProfileLink(topTraderRow?.accountTwitterUrl)}</dd>
         </dl>
       </div>
     </section>`;
@@ -2143,6 +2164,11 @@ tokenTopPnlResolution.addEventListener('change', () => {
   applyTokenTopPnl24hColumnVisibility();
 });
 
+walletTopTradersResolution.addEventListener('change', () => {
+  walletTopTradersResolution.value = getWalletResolution();
+  applyWalletTopTradersTitle();
+});
+
 const initialResolutionLabel = formatResolutionSectionLabel(tokenTopPnlResolution.value);
 const initialTitleResolution = formatResolutionForTitle(initialResolutionLabel);
 tokenSupplySelectedTitle.textContent = initialResolutionLabel;
@@ -2152,6 +2178,7 @@ tokenPnlSelectedTitle.textContent = initialResolutionLabel.toLowerCase() === '24
   : `PnL distribution (Last ${initialTitleResolution})`;
 tokenTradesCountSelectedTitle.textContent = `Trades count distribution (Last ${initialTitleResolution})`;
 lastTokenResolutionBeforeWalletSwitch = normalizeTokenResolution(tokenTopPnlResolution.value);
+walletTopTradersResolution.value = getWalletResolution();
 applyWalletTopTradersTitle();
 setSearchMode(getSearchMode());
 applySearchModeUI();

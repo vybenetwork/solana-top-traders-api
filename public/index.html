@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Solana Top Traders Wallets & Tokens</title>
-  <link rel="stylesheet" href="app.css?v=20" />
+  <link rel="stylesheet" href="app.css?v=36" />
 </head>
 <body>
   <div class="container">
@@ -49,6 +49,43 @@
           </div>
         </div>
 
+        <div class="field wallet-resolution-field resolution-inline-field wallet-only-control">
+          <label for="walletTopTradersResolution">
+            <span class="label-icon field-icon icon-grid" aria-hidden="true"></span>
+            Resolution
+          </label>
+          <div class="field-control">
+            <span class="field-icon icon-grid" aria-hidden="true"></span>
+            <select id="walletTopTradersResolution">
+              <option value="1d">1d</option>
+              <option value="7d" selected>7d</option>
+              <option value="30d">30d</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field wallet-only-control">
+          <label for="walletPnlSortField">
+            <span class="label-icon field-icon icon-sort" aria-hidden="true"></span>
+            Wallet PnL sort
+          </label>
+          <div class="field-control">
+            <span class="field-icon icon-sort" aria-hidden="true"></span>
+            <select id="walletPnlSortField">
+              <option value="realizedPnlUsd" selected>realizedPnlUsd</option>
+              <option value="unrealizedPnlUsd">unrealizedPnlUsd</option>
+              <option value="mintAddress">mintAddress</option>
+              <option value="tokenSymbol">tokenSymbol</option>
+              <option value="buysTransactionCount">buysTransactionCount</option>
+              <option value="buysTokenAmount">buysTokenAmount</option>
+              <option value="buysVolumeUsd">buysVolumeUsd</option>
+              <option value="sellsTransactionCount">sellsTransactionCount</option>
+              <option value="sellsTokenAmount">sellsTokenAmount</option>
+              <option value="sellsVolumeUsd">sellsVolumeUsd</option>
+            </select>
+          </div>
+        </div>
+
         <div class="field wallet-resolution-field resolution-inline-field token-only-control">
           <label for="tokenTopPnlResolution">
             <span class="label-icon field-icon icon-grid" aria-hidden="true"></span>
@@ -82,7 +119,9 @@
       </div>
 
       <div class="candles-mint-resolution-row wallet-only-row" id="walletControlsRow">
-        <div class="field">
+        <div id="walletActionsTarget" class="inline-actions-target wallet-fetch-slot"></div>
+
+        <div class="field" id="walletLabelField">
           <label for="walletLabel">
             <span class="label-icon field-icon icon-user" aria-hidden="true"></span>
             Wallet traders label
@@ -104,30 +143,6 @@
           <div class="field-control">
             <span class="field-icon icon-tag" aria-hidden="true"></span>
             <input type="text" id="walletPnlMintAddress" placeholder="optional mintAddress filter" />
-          </div>
-        </div>
-
-        <div id="walletActionsTarget" class="inline-actions-target wallet-fetch-slot"></div>
-
-        <div class="field">
-          <label for="walletPnlSortField">
-            <span class="label-icon field-icon icon-sort" aria-hidden="true"></span>
-            Wallet PnL sort
-          </label>
-          <div class="field-control">
-            <span class="field-icon icon-sort" aria-hidden="true"></span>
-            <select id="walletPnlSortField">
-              <option value="realizedPnlUsd" selected>realizedPnlUsd</option>
-              <option value="unrealizedPnlUsd">unrealizedPnlUsd</option>
-              <option value="mintAddress">mintAddress</option>
-              <option value="tokenSymbol">tokenSymbol</option>
-              <option value="buysTransactionCount">buysTransactionCount</option>
-              <option value="buysTokenAmount">buysTokenAmount</option>
-              <option value="buysVolumeUsd">buysVolumeUsd</option>
-              <option value="sellsTransactionCount">sellsTransactionCount</option>
-              <option value="sellsTokenAmount">sellsTokenAmount</option>
-              <option value="sellsVolumeUsd">sellsVolumeUsd</option>
-            </select>
           </div>
         </div>
 
@@ -161,7 +176,9 @@
           </div>
         </div>
 
-        <div class="field">
+        <div id="walletLoadingSlot" class="inline-actions-target wallet-fetch-slot"></div>
+
+        <div class="field" id="walletPageField">
           <label for="walletPage">
             <span class="label-icon field-icon icon-pages" aria-hidden="true"></span>
             Page
@@ -174,6 +191,18 @@
       </div>
 
       <div class="candles-mint-resolution-row token-only-controls" id="tokenOnlyControls">
+        <div id="tokenFetchSlot" class="inline-actions-target token-fetch-slot">
+          <div class="field inline-row-actions" id="fetchActions">
+            <label for="fetchAll">
+              <span class="label-icon field-icon icon-grid" aria-hidden="true"></span>
+              Action
+            </label>
+            <div class="actions-buttons">
+              <button type="button" id="fetchAll" class="fetch-btn-attention">Load token analytics</button>
+            </div>
+          </div>
+        </div>
+
         <div class="field">
           <label for="tokenTopPnlSortDirection">
             <span class="label-icon field-icon icon-sort" aria-hidden="true"></span>
@@ -215,21 +244,13 @@
           </div>
         </div>
 
-        <div id="tokenFetchSlot" class="inline-actions-target token-fetch-slot">
-          <div class="field inline-row-actions" id="fetchActions">
-            <label for="fetchAll">
-              <span class="label-icon field-icon icon-grid" aria-hidden="true"></span>
-              Action
-            </label>
-            <div class="actions-buttons">
-              <button type="button" id="fetchAll" class="fetch-btn-attention">Load token analytics</button>
-              <div class="loading" id="loadingIndicator" hidden aria-hidden="true">
-                <span class="loading-spinner"></span>
-                <span class="loading-text">Loading…</span>
-              </div>
-            </div>
+        <div id="tokenLoadingSlot" class="inline-actions-target token-fetch-slot">
+          <div class="loading" id="loadingIndicator" hidden aria-hidden="true">
+            <span class="loading-spinner"></span>
+            <span class="loading-text">Loading…</span>
           </div>
         </div>
+
       </div>
     </section>
 
@@ -386,6 +407,6 @@
       <pre id="errorText"></pre>
     </section>
   </div>
-  <script src="app.js?v=29"></script>
+  <script src="app.js?v=34"></script>
 </body>
 </html>
