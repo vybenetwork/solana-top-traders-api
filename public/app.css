@@ -1223,6 +1223,109 @@ button:active {
   margin-bottom: 0.55rem;
 }
 
+.wallet-pnl-pie-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+  min-height: 0;
+}
+
+.wallet-pnl-pie-stack > .wallet-pnl-card--pie {
+  flex: 1;
+  min-height: 0;
+}
+
+.wallet-pnl-card--pie::before {
+  background: linear-gradient(180deg, #60a5fa, #34d399);
+}
+
+.wallet-pnl-card--pie.token-stats-group {
+  padding: 1.05rem 1.15rem 1.2rem;
+}
+
+.wallet-pnl-card--pie .token-stats-group-title {
+  margin-bottom: 0.65rem;
+  color: #c4c4cc;
+  letter-spacing: 0.055em;
+}
+
+.wallet-pnl-pie-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 122px) minmax(0, 1fr);
+  gap: 1rem 1.2rem;
+  align-items: center;
+  padding-top: 0.1rem;
+}
+
+/* Donut: ring uses conic-gradient; center matches card surface */
+.wallet-pnl-pie-chart {
+  position: relative;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  border: none;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.55) inset,
+    0 10px 32px rgba(0, 0, 0, 0.5);
+}
+
+.wallet-pnl-pie-chart::after {
+  content: '';
+  position: absolute;
+  inset: 27%;
+  border-radius: 50%;
+  z-index: 1;
+  background: linear-gradient(165deg, #15151a 0%, #0e0e12 50%, #0a0a0d 100%);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.wallet-pnl-pie-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.wallet-pnl-pie-legend-item {
+  display: grid;
+  grid-template-columns: 11px 1fr auto;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.wallet-pnl-pie-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  flex-shrink: 0;
+}
+
+.wallet-pnl-pie-legend-label {
+  color: #e4e4e7;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  min-width: 0;
+}
+
+.wallet-pnl-pie-legend-meta {
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.wallet-pnl-pie-empty {
+  margin: 0.25rem 0 0;
+  color: #71717a;
+  font-size: 0.78rem;
+}
+
 .wallet-pnl-kv {
   gap: 0.5rem 1.25rem;
   font-size: 0.875rem;
@@ -1631,6 +1734,10 @@ button:active {
 
   .wallet-pnl-trend-col > .wallet-pnl-card--trend {
     min-height: auto;
+  }
+
+  .wallet-pnl-pie-stack {
+    height: auto !important;
   }
 }
 

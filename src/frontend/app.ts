@@ -525,6 +525,56 @@ function pickLatestTradeSide(metric: WalletPnlTokenMetric): {
   };
 }
 
+type WalletPieSlice = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+function renderWalletPieCard(title: string, slices: WalletPieSlice[]): string {
+  const normalized = slices
+    .map((slice) => ({ ...slice, value: Math.max(0, Number(slice.value) || 0) }))
+    .filter((slice) => slice.value > 0);
+  const total = normalized.reduce((sum, slice) => sum + slice.value, 0);
+  if (total <= 0) {
+    return `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--pie wallet-pnl-empty">
+      <h3 class="token-stats-group-title"><span>${title}</span></h3>
+      <p class="wallet-pnl-pie-empty">No data available.</p>
+    </section>`;
+  }
+  const pctSlices = normalized.map((slice) => (slice.value / total) * 100);
+  const pieGradient = buildPieGradientWithGaps(pctSlices, normalized.map((slice) => slice.color));
+  const legendHtml = normalized
+    .map((slice) => {
+      const pct = (slice.value / total) * 100;
+      return `<div class="wallet-pnl-pie-legend-item">
+        <span class="wallet-pnl-pie-legend-swatch" style="background:${slice.color}"></span>
+        <span class="wallet-pnl-pie-legend-label">${slice.label}</span>
+        <span class="wallet-pnl-pie-legend-meta">${formatPctSmart(pct)} (${formatIntFull(slice.value)})</span>
+      </div>`;
+    })
+    .join('');
+  return `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--pie">
+    <h3 class="token-stats-group-title"><span>${title}</span></h3>
+    <div class="wallet-pnl-pie-wrap">
+      <div class="wallet-pnl-pie-chart" role="img" aria-label="${title}" style="background:${pieGradient}"></div>
+      <div class="wallet-pnl-pie-legend">${legendHtml}</div>
+    </div>
+  </section>`;
+}
+
+function syncWalletPieStackHeights(): void {
+  const trendCard = walletPnlDetails.querySelector('.wallet-pnl-card--trend') as HTMLElement | null;
+  const pieStack = walletPnlDetails.querySelector('.wallet-pnl-pie-stack') as HTMLElement | null;
+  if (!trendCard || !pieStack) return;
+  if (window.innerWidth <= 1100) {
+    pieStack.style.height = '';
+    return;
+  }
+  const h = trendCard.getBoundingClientRect().height;
+  pieStack.style.height = `${Math.max(0, Math.round(h))}px`;
+}
+
 function renderStatusBadge(status: string | null | undefined): string {
   const value = (status || '').trim().toLowerCase();
   if (!value) return '—';
@@ -578,6 +628,11 @@ function buildWalletPnlPlaceholder(): string {
     return `<tr><td>${dash}</td><td style="text-align:right">${dash}</td></tr>`;
   }).join('');
 
+  const pieStackPlaceholderHtml = `<div class="wallet-pnl-pie-stack">
+      ${renderWalletPieCard('Asset status split', [{ label: '—', value: 1, color: '#334155' }])}
+      ${renderWalletPieCard('Winning vs Losing trades', [{ label: '—', value: 1, color: '#334155' }])}
+    </div>`;
+
   return `<div class="wallet-pnl-layout">
     <div class="wallet-pnl-sections">
       <section class="token-stats-group wallet-pnl-card wallet-pnl-card--profile">
@@ -596,6 +651,7 @@ function buildWalletPnlPlaceholder(): string {
         <h3 class="token-stats-group-title"><span>Token highlights</span></h3>
         <div class="wallet-pnl-highlight-grid">${phHighlightFilled('best')}${phHighlightFilled('worst')}</div>
       </section>
+      ${pieStackPlaceholderHtml}
     </div>
     <div class="wallet-pnl-trend-col">
       <section class="token-stats-group wallet-pnl-card wallet-pnl-card--pnl-trading">
@@ -989,6 +1045,37 @@ function renderWalletPnl(
       </div>
     </section>`;
 
+  const statusSlices = (() => {
+    const openCount = tokenMetrics.filter((metric) => (metric.status || '').toLowerCase() === 'open').length;
+    const closedCount = tokenMetrics.filter((metric) => (metric.status || '').toLowerCase() === 'closed').length;
+    const otherCount = Math.max(0, tokenMetrics.length - openCount - closedCount);
+    return [
+      { label: 'Open', value: openCount, color: '#22c55e' },
+      { label: 'Closed', value: closedCount, color: '#ef4444' },
+      { label: 'Other', value: otherCount, color: '#64748b' },
+    ];
+  })();
+
+  const winningLosingTradeSlices = (() => {
+    const win = Math.max(0, Math.round(Number(mergedSummary.winningTradesCount) || 0));
+    const lose = Math.max(0, Math.round(Number(mergedSummary.losingTradesCount) || 0));
+    const total = Math.max(0, Math.round(Number(mergedSummary.tradesCount) || 0));
+    const remainder = Math.max(0, total - win - lose);
+    const slices: WalletPieSlice[] = [
+      { label: 'Winning trades', value: win, color: '#22c55e' },
+      { label: 'Losing trades', value: lose, color: '#ef4444' },
+    ];
+    if (remainder > 0) {
+      slices.push({ label: 'Other', value: remainder, color: '#94a3b8' });
+    }
+    return slices;
+  })();
+
+  const pieStackHtml = `<div class="wallet-pnl-pie-stack">
+      ${renderWalletPieCard('Asset status split', statusSlices)}
+      ${renderWalletPieCard('Winning vs Losing trades', winningLosingTradeSlices)}
+    </div>`;
+
   const trendRows = mergedSummary.pnlTrendSevenDays ?? [];
   const pnlTrendHtml = trendRows.length
     ? `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--trend">
@@ -1077,9 +1164,10 @@ function renderWalletPnl(
     </section>`;
 
   walletPnlDetails.innerHTML = `<div class="wallet-pnl-layout">
-    <div class="wallet-pnl-sections">${walletProfileHtml}${tokenHighlightsHtml}</div>
+    <div class="wallet-pnl-sections">${walletProfileHtml}${tokenHighlightsHtml}${pieStackHtml}</div>
     <div class="wallet-pnl-trend-col">${pnlTradingHtml}${pnlTrendHtml}</div>
   </div>${assetsTableHtml}`;
+  requestAnimationFrame(() => syncWalletPieStackHeights());
 }
 
 function buildTokenTopPnlParams(): URLSearchParams {
@@ -2169,6 +2257,10 @@ walletTopTradersResolution.addEventListener('change', () => {
   applyWalletTopTradersTitle();
 });
 
+window.addEventListener('resize', () => {
+  syncWalletPieStackHeights();
+});
+
 const initialResolutionLabel = formatResolutionSectionLabel(tokenTopPnlResolution.value);
 const initialTitleResolution = formatResolutionForTitle(initialResolutionLabel);
 tokenSupplySelectedTitle.textContent = initialResolutionLabel;
@@ -2187,5 +2279,6 @@ topTradersMeta.hidden = true;
 topTradersCards.hidden = true;
 walletPnlMeta.textContent = '—';
 walletPnlDetails.innerHTML = buildWalletPnlPlaceholder();
+requestAnimationFrame(() => syncWalletPieStackHeights());
 tokenTopPnlBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="token-top-pnl-24h-col">—</td><td>—</td><td class="token-top-pnl-24h-col">—</td></tr>';
 applyTokenTopPnl24hColumnVisibility();
