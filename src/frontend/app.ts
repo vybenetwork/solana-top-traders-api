@@ -187,6 +187,14 @@ const WALLET_PNL_TREND_LEDE =
 /** Shapes placeholder wallet PnL to match loaded layout (stable column heights). */
 const WALLET_PNL_PLACEHOLDER_ASSET_ROW_COUNT = 12;
 
+const TOKEN_TOP_PNL_PLACEHOLDER_ROW_COUNT = 12;
+
+function buildTokenTopPnlPlaceholderRowsHtml(): string {
+  const row =
+    '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="token-top-pnl-24h-col">—</td><td>—</td><td class="token-top-pnl-24h-col">—</td></tr>';
+  return Array.from({ length: TOKEN_TOP_PNL_PLACEHOLDER_ROW_COUNT }, () => row).join('');
+}
+
 function walletPnlTradingLedeInnerHtml(): string {
   const r = getWalletResolution();
   return `Realized and unrealized PnL plus key trade metrics for the <strong>${r}</strong> window used when wallet PnL is fetched.`;
@@ -563,20 +571,17 @@ function renderWalletPieCard(title: string, slices: WalletPieSlice[]): string {
   if (total <= 0) {
     const dash = '—';
     const isWinLose = title.toLowerCase().includes('winning') || title.toLowerCase().includes('losing');
-    const emptyColors = isWinLose
-      ? ['#22c55e', '#ef4444']
-      : ['#22c55e', '#ef4444', '#64748b'];
-    const emptyWeights = emptyColors.map(() => 1);
-    const emptyBg = buildPieGradientWithGaps(emptyWeights, emptyColors);
-    const legendHtml = emptyColors
-      .map(
-        (color) => `<div class="wallet-pnl-pie-legend-item">
-        <span class="wallet-pnl-pie-legend-swatch" style="background:${color}"></span>
+    const neutralRing = '#27272a';
+    const neutralSwatch = '#52525b';
+    const emptyBg = buildPieGradientWithGaps([1], [neutralRing]);
+    const legendRows = isWinLose ? 2 : 3;
+    const legendHtml = Array.from({ length: legendRows }, () => {
+      return `<div class="wallet-pnl-pie-legend-item">
+        <span class="wallet-pnl-pie-legend-swatch" style="background:${neutralSwatch}"></span>
         <span class="wallet-pnl-pie-legend-label">${dash}</span>
         <span class="wallet-pnl-pie-legend-meta">${dash} (${dash})</span>
-      </div>`
-      )
-      .join('');
+      </div>`;
+    }).join('');
     return `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--pie">
       <h3 class="token-stats-group-title"><span>${title}</span></h3>
       <div class="wallet-pnl-pie-wrap">
@@ -826,6 +831,7 @@ const tokenSectionIcons: Record<string, string> = {
 interface SectionSpec {
   icon: string;
   title: string;
+  theme: 'overview' | 'price' | 'supply' | 'meta';
   rows: [string, string | number | undefined][];
 }
 
@@ -866,7 +872,7 @@ function renderToken(t: TokenData): void {
   tokenSymbol.textContent = t.symbol || '—';
   tokenName.textContent = t.name || t.mintAddress || '—';
 
-  const sectionHtml = (s: SectionSpec): string => `<section class="token-stats-group">
+  const sectionHtml = (s: SectionSpec): string => `<section class="token-stats-group token-stats-group--${s.theme}">
       <h3 class="token-stats-group-title">${s.icon}<span>${s.title}</span></h3>
       <dl class="token-stats">${s.rows.map(([label, value]) => `<dt>${label}</dt><dd>${value ?? '—'}</dd>`).join('')}</dl>
     </section>`;
@@ -891,6 +897,7 @@ function renderToken(t: TokenData): void {
   const overview: SectionSpec = {
     icon: tokenSectionIcons.overview,
     title: 'Overview',
+    theme: 'overview',
     rows: [
       ['Mint', mintLink],
       ['Symbol', sym || '—'],
@@ -903,6 +910,7 @@ function renderToken(t: TokenData): void {
   const priceSection: SectionSpec = {
     icon: tokenSectionIcons.price,
     title: 'Price & market cap',
+    theme: 'price',
     rows: [
       ['Price (USD)', t.price != null ? `${formatPrice(t.price)} USD` : '—'],
       ['Market cap', t.marketCap != null ? `${formatNum(t.marketCap)} USD` : '—'],
@@ -913,6 +921,7 @@ function renderToken(t: TokenData): void {
   const supplyVolumeSection: SectionSpec = {
     icon: tokenSectionIcons.supply,
     title: 'Supply & volume (24h)',
+    theme: 'supply',
     rows: [
       ['Current supply', t.currentSupply != null ? `${formatNum(t.currentSupply)}${sym ? ` ${sym}` : ''}` : '—'],
       ['Token volume (24h)', t.tokenAmountVolume24h != null ? `${formatNum(t.tokenAmountVolume24h)}${sym ? ` ${sym}` : ''}` : '—'],
@@ -922,6 +931,7 @@ function renderToken(t: TokenData): void {
   const metaSection: SectionSpec = {
     icon: tokenSectionIcons.meta,
     title: 'Last updated',
+    theme: 'meta',
     rows: [['Update time', formatUpdateTime(t.updateTime)]],
   };
 
@@ -934,13 +944,14 @@ function renderToken(t: TokenData): void {
 /** Same sections/labels as `renderToken`, values shown as em dash until data loads. */
 function buildTokenStatsPlaceholderHtml(): string {
   const dash = '—';
-  const sectionHtml = (s: SectionSpec): string => `<section class="token-stats-group">
+  const sectionHtml = (s: SectionSpec): string => `<section class="token-stats-group token-stats-group--${s.theme}">
       <h3 class="token-stats-group-title">${s.icon}<span>${s.title}</span></h3>
       <dl class="token-stats">${s.rows.map(([label, value]) => `<dt>${label}</dt><dd>${value ?? dash}</dd>`).join('')}</dl>
     </section>`;
   const overview: SectionSpec = {
     icon: tokenSectionIcons.overview,
     title: 'Overview',
+    theme: 'overview',
     rows: [
       ['Mint', `<span class="mono">${dash}</span>`],
       ['Symbol', dash],
@@ -953,6 +964,7 @@ function buildTokenStatsPlaceholderHtml(): string {
   const priceSection: SectionSpec = {
     icon: tokenSectionIcons.price,
     title: 'Price & market cap',
+    theme: 'price',
     rows: [
       ['Price (USD)', dash],
       ['Market cap', dash],
@@ -963,6 +975,7 @@ function buildTokenStatsPlaceholderHtml(): string {
   const supplyVolumeSection: SectionSpec = {
     icon: tokenSectionIcons.supply,
     title: 'Supply & volume (24h)',
+    theme: 'supply',
     rows: [
       ['Current supply', dash],
       ['Token volume (24h)', dash],
@@ -972,6 +985,7 @@ function buildTokenStatsPlaceholderHtml(): string {
   const metaSection: SectionSpec = {
     icon: tokenSectionIcons.meta,
     title: 'Last updated',
+    theme: 'meta',
     rows: [['Update time', dash]],
   };
   return (
@@ -1442,7 +1456,7 @@ function renderTokenTopPnlTraders(
         <td class="token-top-pnl-24h-col" style="text-align:right">${formatTradesCountHeatCell(trades24h, trades24hMin, trades24hMax)}</td>
       </tr>`;
     }).join('')
-    : '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="token-top-pnl-24h-col">—</td><td>—</td><td class="token-top-pnl-24h-col">—</td></tr>';
+    : buildTokenTopPnlPlaceholderRowsHtml();
   applyTokenTopPnl24hColumnVisibility();
 }
 
@@ -2543,5 +2557,5 @@ walletPnlMeta.textContent = '—';
 walletPnlDetails.innerHTML = buildWalletPnlPlaceholder();
 requestAnimationFrame(() => syncWalletPieStackHeights());
 applyTokenModePlaceholder();
-tokenTopPnlBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="token-top-pnl-24h-col">—</td><td>—</td><td class="token-top-pnl-24h-col">—</td></tr>';
+tokenTopPnlBody.innerHTML = buildTokenTopPnlPlaceholderRowsHtml();
 applyTokenTopPnl24hColumnVisibility();
