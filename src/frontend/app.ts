@@ -466,18 +466,28 @@ type WalletGainColorBounds = {
   maxBelow1: number | null;
 };
 
-function collectWalletGainColorBounds(ratios: (number | null)[]): WalletGainColorBounds {
-  const above = ratios.filter((r): r is number => r != null && r > 1 + GAIN_ONE_X_EPS);
-  const below = ratios.filter((r): r is number => r != null && r < 1 - GAIN_ONE_X_EPS);
+function collectWalletGainColorBounds(metrics: WalletPnlTokenMetric[]): WalletGainColorBounds {
+  const aboveOne: number[] = [];
+  const belowOneClosed: number[] = [];
+  for (const m of metrics) {
+    const r = computeWalletAssetGainRatio(m.buys?.volumeUsd, m.sells?.volumeUsd);
+    if (r == null) continue;
+    if (r > 1 + GAIN_ONE_X_EPS) aboveOne.push(r);
+    else if (r < 1 - GAIN_ONE_X_EPS && isWalletPositionClosed(m.status)) belowOneClosed.push(r);
+  }
   return {
-    minAbove1: above.length ? Math.min(...above) : null,
-    maxAbove1: above.length ? Math.max(...above) : null,
-    minBelow1: below.length ? Math.min(...below) : null,
-    maxBelow1: below.length ? Math.max(...below) : null,
+    minAbove1: aboveOne.length ? Math.min(...aboveOne) : null,
+    maxAbove1: aboveOne.length ? Math.max(...aboveOne) : null,
+    minBelow1: belowOneClosed.length ? Math.min(...belowOneClosed) : null,
+    maxBelow1: belowOneClosed.length ? Math.max(...belowOneClosed) : null,
   };
 }
 
-function gainMultiplierDisplayColor(ratio: number, b: WalletGainColorBounds): string {
+function gainMultiplierDisplayColor(
+  ratio: number,
+  b: WalletGainColorBounds,
+  status: string | null | undefined
+): string {
   if (Math.abs(ratio - 1) <= GAIN_ONE_X_EPS) {
     return GAIN_YELLOW;
   }
@@ -488,6 +498,9 @@ function gainMultiplierDisplayColor(ratio: number, b: WalletGainColorBounds): st
     const t = (ratio - b.minAbove1) / span;
     return lerpHex(GAIN_GREEN_LIGHT, GAIN_GREEN_NORMAL, t);
   }
+  if (!isWalletPositionClosed(status)) {
+    return GAIN_YELLOW;
+  }
   if (b.minBelow1 == null || b.maxBelow1 == null) return GAIN_RED_NORMAL;
   const span = b.maxBelow1 - b.minBelow1;
   if (span <= 1e-9) return GAIN_RED_NORMAL;
@@ -495,14 +508,10 @@ function gainMultiplierDisplayColor(ratio: number, b: WalletGainColorBounds): st
   return lerpHex(GAIN_RED_NORMAL, GAIN_RED_LIGHT, t);
 }
 
-function renderWalletAssetGainCell(
-  buyVolUsd: number | string | null | undefined,
-  sellVolUsd: number | string | null | undefined,
-  bounds: WalletGainColorBounds
-): string {
-  const ratio = computeWalletAssetGainRatio(buyVolUsd, sellVolUsd);
+function renderWalletAssetGainCell(metric: WalletPnlTokenMetric, bounds: WalletGainColorBounds): string {
+  const ratio = computeWalletAssetGainRatio(metric.buys?.volumeUsd, metric.sells?.volumeUsd);
   if (ratio == null) return '—';
-  const color = gainMultiplierDisplayColor(ratio, bounds);
+  const color = gainMultiplierDisplayColor(ratio, bounds, metric.status);
   const label = formatGainMultiplierLabel(ratio);
   return `<span class="wallet-asset-gain" style="color:${color}">${label}</span>`;
 }
@@ -1405,9 +1414,7 @@ function renderWalletPnl(
     </section>`;
 
   const assetCount = tokenMetrics.length;
-  const gainColorBounds = collectWalletGainColorBounds(
-    tokenMetrics.map((m) => computeWalletAssetGainRatio(m.buys?.volumeUsd, m.sells?.volumeUsd))
-  );
+  const gainColorBounds = collectWalletGainColorBounds(tokenMetrics);
   const assetsTableHtml = tokenMetrics.length
     ? `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--assets">
       <h3 class="token-stats-group-title"><span>Assets (${assetCount})</span></h3>
@@ -1451,7 +1458,7 @@ function renderWalletPnl(
         <td>${formatTradesCountHeatCell(metric.sells?.transactionCount, sellsTxMin, sellsTxMax)}</td>
         <td><span class="wallet-amt-vol-usd">${formatUsdFull(metric.buys?.volumeUsd)}</span></td>
         <td><span class="wallet-amt-vol-usd">${formatUsdFull(metric.sells?.volumeUsd)}</span></td>
-        <td style="text-align:center">${renderWalletAssetGainCell(metric.buys?.volumeUsd, metric.sells?.volumeUsd, gainColorBounds)}</td>
+        <td style="text-align:center">${renderWalletAssetGainCell(metric, gainColorBounds)}</td>
         <td class="wallet-asset-tx-cell">${renderLatestTradeCell(latestTrade.blocktime, latestTrade.signature, latestTrade.label)}</td>
       </tr>`;
     }).join('')}</tbody>
