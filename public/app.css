@@ -31,9 +31,11 @@ header h1 {
 }
 
 .subtitle {
-  color: #a1a1aa;
-  font-size: 0.9rem;
-  margin: 0;
+  margin: 0 0 13px 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #71717a;
+  font-weight: 400;
 }
 
 .inputs {
@@ -158,10 +160,12 @@ header h1 {
 }
 
 .remote-filters-help {
-  margin: 0.5rem 0 0.5rem;
-  font-size: 0.8rem;
-  color: #a1a1aa;
+  margin: 0 0 13px 0;
   flex-basis: 100%;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #71717a;
+  font-weight: 400;
 }
 
 .field-control {
@@ -626,6 +630,11 @@ button:active {
   color: #a1a1aa;
 }
 
+/* Override .panel h2 bottom margin inside token supply cards (section-header already wants tight stack). */
+.token-supply-panel .section-header h2 {
+  margin: 0;
+}
+
 .token-header {
   display: flex;
   align-items: center;
@@ -699,7 +708,7 @@ button:active {
   color: #a1a1aa;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin: 0 0 0.75rem 0;
+  margin: 0;
 }
 
 .token-stats-group-title .section-icon {
@@ -899,7 +908,7 @@ button:active {
 }
 
 .token-supply-legend-label {
-  color: #e4e4e7;
+  color: #a1a1aa;
   font-weight: 500;
   line-height: 1.2;
 }
@@ -917,7 +926,7 @@ button:active {
 }
 
 .token-supply-legend-pct {
-  color: #f4f4f5;
+  color: #a1a1aa;
 }
 
 .token-supply-legend-token {
@@ -1058,11 +1067,11 @@ button:active {
 
 .meta.token-supply-period-desc,
 .meta.token-supply-card-desc {
-  margin: 0 0 24px 0;
-  font-size: 0.9rem;
-  line-height: 1.45;
+  margin: 0 0 13px 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
   font-weight: 400;
-  color: #d4d4d8;
+  color: #71717a;
 }
 
 .trades-summary-grid {
@@ -1222,7 +1231,7 @@ button:active {
 }
 
 .token-top-pnl-table-card .token-stats-group-title {
-  margin-bottom: 0.65rem;
+  margin: 0;
   color: #c4c4cc;
   letter-spacing: 0.055em;
 }
@@ -1339,7 +1348,7 @@ button:active {
 }
 
 .wallet-pnl-sections > .wallet-pnl-card .token-stats-group-title {
-  margin-bottom: 0.55rem;
+  margin: 0;
 }
 
 .wallet-pnl-pie-stack {
@@ -1350,12 +1359,11 @@ button:active {
 }
 
 .wallet-pnl-pie-stack > .wallet-pnl-card--pie {
-  flex: 1;
   min-height: 0;
 }
 
 .wallet-pnl-card--pie::before {
-  background: linear-gradient(180deg, #60a5fa, #34d399);
+  background: linear-gradient(180deg, #60a5fa, #2563eb);
 }
 
 .wallet-pnl-card--pie.token-stats-group {
@@ -1363,14 +1371,31 @@ button:active {
 }
 
 .wallet-pnl-card--pie .token-stats-group-title {
-  margin-bottom: 0.65rem;
-  color: #c4c4cc;
-  letter-spacing: 0.055em;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.wallet-pnl-card--pie .token-stats-group-title span {
+  display: inline-block;
+  margin-bottom: 13px;
+}
+
+.wallet-pnl-card--assets .token-stats-group-title span {
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.wallet-pnl-card--profile .token-stats-group-title span,
+.wallet-pnl-card--highlights .token-stats-group-title span {
+  display: inline-block;
+  margin-bottom: 8px;
 }
 
 .wallet-pnl-pie-wrap {
   display: grid;
-  grid-template-columns: minmax(0, 122px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 94px) minmax(0, 1fr);
   gap: 1rem 1.2rem;
   align-items: center;
   padding-top: 0.1rem;
@@ -1379,8 +1404,8 @@ button:active {
 /* Donut: ring uses conic-gradient; center matches card surface */
 .wallet-pnl-pie-chart {
   position: relative;
-  width: 118px;
-  height: 118px;
+  width: 94px;
+  height: 94px;
   border-radius: 50%;
   border: none;
   box-shadow:
@@ -1427,7 +1452,7 @@ button:active {
 }
 
 .wallet-pnl-pie-legend-label {
-  color: #e4e4e7;
+  color: #a1a1aa;
   font-weight: 500;
   letter-spacing: 0.01em;
   min-width: 0;
@@ -1516,16 +1541,18 @@ button:active {
 }
 
 .wallet-pnl-pnl-trading-lede {
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 13px 0;
   font-size: 0.74rem;
   line-height: 1.4;
+  font-weight: 400;
   color: #71717a;
 }
 
 .wallet-pnl-trading-lede {
-  margin: 0 0 0.15rem 0;
+  margin: 0 0 13px 0;
   font-size: 0.74rem;
   line-height: 1.4;
+  font-weight: 400;
   color: #71717a;
 }
 
@@ -1642,10 +1669,11 @@ button:active {
 }
 
 .wallet-pnl-trend-lede {
-  margin: 0 0 0.85rem 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: #a1a1aa;
+  margin: 0 0 13px 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #71717a;
+  font-weight: 400;
   max-width: 52ch;
 }
 
@@ -1797,6 +1825,7 @@ button:active {
 .wallet-pnl-trend-table-wrap {
   flex: 1;
   min-height: 0;
+  max-height: fit-content !important;
   overflow: auto;
   border-radius: 6px;
   border: 1px solid #27272a;
@@ -1949,7 +1978,7 @@ button:active {
 }
 
 .wallet-assets-table {
-  min-width: 800px;
+  min-width: 820px;
   table-layout: fixed;
 }
 
@@ -1957,12 +1986,6 @@ button:active {
 .wallet-assets-table td {
   padding: 0.22rem 0.26rem;
   font-size: 0.66rem;
-}
-
-.wallet-assets-table th:nth-child(2),
-.wallet-assets-table td:nth-child(2) {
-  width: 92px;
-  max-width: 92px;
 }
 
 .wallet-assets-table th:nth-child(1),
@@ -1974,52 +1997,109 @@ button:active {
   padding-right: 0.15rem !important;
 }
 
+.wallet-assets-table th:nth-child(2),
+.wallet-assets-table td:nth-child(2) {
+  width: 92px;
+  max-width: 92px;
+}
+
 .wallet-assets-table th:nth-child(3),
 .wallet-assets-table td:nth-child(3) {
+  width: 76px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.wallet-assets-table th:nth-child(4),
+.wallet-assets-table td:nth-child(4) {
   width: 42px;
   text-align: center;
 }
 
-.wallet-assets-table th:nth-child(4),
-.wallet-assets-table td:nth-child(4),
 .wallet-assets-table th:nth-child(5),
-.wallet-assets-table td:nth-child(5) {
+.wallet-assets-table td:nth-child(5),
+.wallet-assets-table th:nth-child(6),
+.wallet-assets-table td:nth-child(6) {
   width: 62px;
   text-align: center;
 }
 
-.wallet-assets-table th:nth-child(6),
-.wallet-assets-table td:nth-child(6),
 .wallet-assets-table th:nth-child(7),
-.wallet-assets-table td:nth-child(7) {
+.wallet-assets-table td:nth-child(7),
+.wallet-assets-table th:nth-child(8),
+.wallet-assets-table td:nth-child(8) {
   width: 50px;
   text-align: center;
 }
 
-.wallet-assets-table th:nth-child(8),
-.wallet-assets-table td:nth-child(8),
+.wallet-assets-table th:nth-child(9),
+.wallet-assets-table td:nth-child(9),
 .wallet-assets-table th:nth-child(10),
 .wallet-assets-table td:nth-child(10) {
   width: 64px;
   text-align: center;
 }
 
-.wallet-assets-table th:nth-child(9),
-.wallet-assets-table td:nth-child(9),
 .wallet-assets-table th:nth-child(11),
 .wallet-assets-table td:nth-child(11) {
-  width: 64px;
+  width: 48px;
   text-align: center;
 }
 
-.wallet-assets-table th:nth-child(12) {
-  width: 86px;
-  text-align: center;
-}
-
+.wallet-assets-table th:nth-child(12),
 .wallet-assets-table td:nth-child(12) {
   width: 86px;
   text-align: center;
+}
+
+.wallet-asset-gain {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-asset-buysell-amt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  font-size: 0.62rem;
+  line-height: 1.15;
+}
+
+.wallet-amt-stack-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  justify-content: center;
+}
+
+.wallet-amt-stack-value--buy {
+  color: #22c55e;
+}
+
+.wallet-amt-stack-value--sell {
+  color: #ef4444;
+}
+
+.wallet-amt-stack-value--struck {
+  text-decoration: line-through;
+  text-decoration-color: #ffffff;
+}
+
+.wallet-amt-side-icon {
+  display: inline-block;
+  font-size: 0.52rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.wallet-amt-side-icon--buy {
+  color: #22c55e;
+}
+
+.wallet-amt-side-icon--sell {
+  color: #ef4444;
 }
 
 .wallet-asset-icon-cell {

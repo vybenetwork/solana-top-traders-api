@@ -182,7 +182,7 @@ const PUMP_MINT_FALLBACK_LOGO_URL =
   'https://s2.coinmarketcap.com/static/img/coins/64x64/36507.png';
 
 const WALLET_PNL_TREND_LEDE =
-  'Each row is a snapshot of cumulative realized PnL through that moment. Use it to see whether the wallet was building gains, giving them back, or chopping sideways across the last seven days.';
+  'Each row is a snapshot of cumulative realized PnL through that moment. See whether the wallet was building gains, giving them back, or chopping sideways across the last seven days.';
 
 /** Shapes placeholder wallet PnL to match loaded layout (stable column heights). */
 const WALLET_PNL_PLACEHOLDER_ASSET_ROW_COUNT = 12;
@@ -369,6 +369,108 @@ function formatUsdCell(n: number | null | undefined): string {
   return `<span class="usd-tone ${usdToneClass(n)}">${formatUsdFull(n)}</span>`;
 }
 
+/** Sell USD volume ÷ buy USD volume. */
+function computeWalletAssetGainRatio(
+  buyVolUsd: number | string | null | undefined,
+  sellVolUsd: number | string | null | undefined
+): number | null {
+  const buy = Number(buyVolUsd);
+  const sell = Number(sellVolUsd);
+  if (!Number.isFinite(buy) || buy <= 0 || !Number.isFinite(sell) || sell < 0) return null;
+  const ratio = sell / buy;
+  if (!Number.isFinite(ratio) || ratio <= 0) return null;
+  return ratio;
+}
+
+/** Ratio under 5 → two decimals + "x", else floored integer + "x". */
+function formatGainMultiplierLabel(ratio: number): string {
+  if (ratio < 5) {
+    return `${ratio.toFixed(2)}x`;
+  }
+  return `${Math.floor(ratio)}x`;
+}
+
+const GAIN_ONE_X_EPS = 0.0005;
+/** Light end of the >1× range (weakest gain still above 1). */
+const GAIN_GREEN_LIGHT = '#86efac';
+/** Darkest green for the best (highest) gain in the response. */
+const GAIN_GREEN_DARK = '#14532d';
+const GAIN_YELLOW = '#eab308';
+/** Darkest red for the worst (lowest) gain below 1. */
+const GAIN_RED_DARK = '#7f1d1d';
+/** Light red closest to 1× among losers. */
+const GAIN_RED_LIGHT = '#f87171';
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace('#', '');
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+
+function lerpChannel(a: number, b: number, t: number): number {
+  return Math.round(a + (b - a) * t);
+}
+
+function lerpHex(from: string, to: string, t: number): string {
+  const u = Math.max(0, Math.min(1, t));
+  const A = hexToRgb(from);
+  const B = hexToRgb(to);
+  return `#${lerpChannel(A.r, B.r, u).toString(16).padStart(2, '0')}${lerpChannel(A.g, B.g, u)
+    .toString(16)
+    .padStart(2, '0')}${lerpChannel(A.b, B.b, u).toString(16).padStart(2, '0')}`;
+}
+
+type WalletGainColorBounds = {
+  minAbove1: number | null;
+  maxAbove1: number | null;
+  minBelow1: number | null;
+  maxBelow1: number | null;
+};
+
+function collectWalletGainColorBounds(ratios: (number | null)[]): WalletGainColorBounds {
+  const above = ratios.filter((r): r is number => r != null && r > 1 + GAIN_ONE_X_EPS);
+  const below = ratios.filter((r): r is number => r != null && r < 1 - GAIN_ONE_X_EPS);
+  return {
+    minAbove1: above.length ? Math.min(...above) : null,
+    maxAbove1: above.length ? Math.max(...above) : null,
+    minBelow1: below.length ? Math.min(...below) : null,
+    maxBelow1: below.length ? Math.max(...below) : null,
+  };
+}
+
+function gainMultiplierDisplayColor(ratio: number, b: WalletGainColorBounds): string {
+  if (Math.abs(ratio - 1) <= GAIN_ONE_X_EPS) {
+    return GAIN_YELLOW;
+  }
+  if (ratio > 1) {
+    if (b.minAbove1 == null || b.maxAbove1 == null) return GAIN_GREEN_DARK;
+    const span = b.maxAbove1 - b.minAbove1;
+    if (span <= 1e-9) return GAIN_GREEN_DARK;
+    const t = (ratio - b.minAbove1) / span;
+    return lerpHex(GAIN_GREEN_LIGHT, GAIN_GREEN_DARK, t);
+  }
+  if (b.minBelow1 == null || b.maxBelow1 == null) return GAIN_RED_DARK;
+  const span = b.maxBelow1 - b.minBelow1;
+  if (span <= 1e-9) return GAIN_RED_DARK;
+  const t = (ratio - b.minBelow1) / span;
+  return lerpHex(GAIN_RED_DARK, GAIN_RED_LIGHT, t);
+}
+
+function renderWalletAssetGainCell(
+  buyVolUsd: number | string | null | undefined,
+  sellVolUsd: number | string | null | undefined,
+  bounds: WalletGainColorBounds
+): string {
+  const ratio = computeWalletAssetGainRatio(buyVolUsd, sellVolUsd);
+  if (ratio == null) return '—';
+  const color = gainMultiplierDisplayColor(ratio, bounds);
+  const label = formatGainMultiplierLabel(ratio);
+  return `<span class="wallet-asset-gain" style="color:${color}">${label}</span>`;
+}
+
 function formatIntFull(n: number | null | undefined): string {
   if (n == null) return '—';
   const num = Number(n);
@@ -503,6 +605,18 @@ function formatBlocktime(blocktime: number | null | undefined): string {
   const month = pad(d.getMonth() + 1);
   const yy = pad(d.getFullYear() % 100);
   return `${hh}:${mm} ${dd}/${month}/${yy}`;
+}
+
+/** e.g. "Saturday April 24 17:00" (local), for 7d PnL trend table */
+function formatPnlTrendPointTime(tsMs: number): string {
+  const d = new Date(tsMs);
+  if (Number.isNaN(d.getTime())) return '—';
+  const weekday = d.toLocaleString('en-US', { weekday: 'long' });
+  const month = d.toLocaleString('en-US', { month: 'long' });
+  const day = d.getDate();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${weekday} ${month} ${day} ${hh}:${mm}`;
 }
 
 function renderSignaturePopupLink(signature: string | null | undefined, label = 'Open TX'): string {
@@ -640,13 +754,28 @@ function renderStatusBadge(status: string | null | undefined): string {
   return `<span class="wallet-status-badge">${value}</span>`;
 }
 
+function isWalletPositionClosed(status: string | null | undefined): boolean {
+  return (status || '').trim().toLowerCase() === 'closed';
+}
+
+function renderWalletAssetBuySellAmtCell(metric: WalletPnlTokenMetric): string {
+  const closed = isWalletPositionClosed(metric.status);
+  const strikeClass = closed ? ' wallet-amt-stack-value--struck' : '';
+  const buyText = formatNum(metric.buys?.tokenAmount);
+  const sellText = formatNum(metric.sells?.tokenAmount);
+  return `<div class="wallet-asset-buysell-amt">
+    <div class="wallet-amt-stack-row"><span class="wallet-amt-stack-value wallet-amt-stack-value--buy${strikeClass}">${buyText}</span><span class="wallet-amt-side-icon wallet-amt-side-icon--buy" aria-hidden="true">▲</span></div>
+    <div class="wallet-amt-stack-row"><span class="wallet-amt-stack-value wallet-amt-stack-value--sell${strikeClass}">${sellText}</span><span class="wallet-amt-side-icon wallet-amt-side-icon--sell" aria-hidden="true">▼</span></div>
+  </div>`;
+}
+
 function buildWalletPnlPlaceholder(): string {
   const dash = '—';
   const dummyAssetRows = Array.from({ length: WALLET_PNL_PLACEHOLDER_ASSET_ROW_COUNT }, () => {
     return `<tr>
         <td class="wallet-asset-icon-cell">${dash}</td>
         <td>${dash}</td>
-        <td>${dash}</td>
+        <td class="wallet-asset-buysell-amt-cell"><div class="wallet-asset-buysell-amt"><div class="wallet-amt-stack-row"><span class="wallet-amt-stack-value wallet-amt-stack-value--buy">${dash}</span><span class="wallet-amt-side-icon wallet-amt-side-icon--buy" aria-hidden="true">▲</span></div><div class="wallet-amt-stack-row"><span class="wallet-amt-stack-value wallet-amt-stack-value--sell">${dash}</span><span class="wallet-amt-side-icon wallet-amt-side-icon--sell" aria-hidden="true">▼</span></div></div></td>
         <td>${dash}</td>
         <td>${dash}</td>
         <td>${dash}</td>
@@ -753,22 +882,22 @@ function buildWalletPnlPlaceholder(): string {
     </div>
   </div>
   <section class="token-stats-group wallet-pnl-card wallet-pnl-card--assets">
-    <h3 class="token-stats-group-title"><span>Assets (${WALLET_PNL_PLACEHOLDER_ASSET_ROW_COUNT})</span></h3>
+    <h3 class="token-stats-group-title"><span>Assets (0)</span></h3>
     <div class="table-wrap wallet-assets-table-wrap">
       <table class="wallet-assets-table">
         <thead>
           <tr>
             <th class="wallet-assets-th-icon" scope="col" aria-label="Icon"></th>
             <th>Asset</th>
+            <th>Buy/Sell Amt</th>
             <th>Status</th>
             <th>Real. PnL</th>
             <th>Unreal. PnL</th>
             <th>Buys</th>
             <th>Sells</th>
-            <th>Buy amt</th>
             <th>Buy vol</th>
-            <th>Sell amt</th>
             <th>Sell vol</th>
+            <th>Gain</th>
             <th>Latest TX</th>
           </tr>
         </thead>
@@ -1169,25 +1298,19 @@ function renderWalletPnl(
     const closedCount = tokenMetrics.filter((metric) => (metric.status || '').toLowerCase() === 'closed').length;
     const otherCount = Math.max(0, tokenMetrics.length - openCount - closedCount);
     return [
-      { label: 'Open', value: openCount, color: '#22c55e' },
-      { label: 'Closed', value: closedCount, color: '#ef4444' },
-      { label: 'Other', value: otherCount, color: '#64748b' },
+      { label: 'Open Positions', value: openCount, color: '#3b82f6' },
+      { label: 'Closed Positions', value: closedCount, color: '#2563eb' },
+      { label: 'Other', value: otherCount, color: '#1d4ed8' },
     ];
   })();
 
   const winningLosingTradeSlices = (() => {
     const win = Math.max(0, Math.round(Number(mergedSummary.winningTradesCount) || 0));
     const lose = Math.max(0, Math.round(Number(mergedSummary.losingTradesCount) || 0));
-    const total = Math.max(0, Math.round(Number(mergedSummary.tradesCount) || 0));
-    const remainder = Math.max(0, total - win - lose);
-    const slices: WalletPieSlice[] = [
-      { label: 'Winning trades', value: win, color: '#22c55e' },
-      { label: 'Losing trades', value: lose, color: '#ef4444' },
+    return [
+      { label: 'Winning trades', value: win, color: '#3b82f6' },
+      { label: 'Losing trades', value: lose, color: '#64748b' },
     ];
-    if (remainder > 0) {
-      slices.push({ label: 'Still Open', value: remainder, color: '#94a3b8' });
-    }
-    return slices;
   })();
 
   const pieStackHtml = `<div class="wallet-pnl-pie-stack">
@@ -1195,7 +1318,15 @@ function renderWalletPnl(
       ${renderWalletPieCard('Winning vs Losing trades', winningLosingTradeSlices)}
     </div>`;
 
-  const trendRows = mergedSummary.pnlTrendSevenDays ?? [];
+  const trendRowsRaw = mergedSummary.pnlTrendSevenDays ?? [];
+  const trendRows = [...trendRowsRaw].sort((a, b) => {
+    const ta = Number(a?.[0]);
+    const tb = Number(b?.[0]);
+    if (!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
+    if (!Number.isFinite(ta)) return 1;
+    if (!Number.isFinite(tb)) return -1;
+    return tb - ta;
+  });
   const pnlTrendHtml = trendRows.length
     ? `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--trend">
       <h3 class="token-stats-group-title"><span>7d PnL trend points</span></h3>
@@ -1211,7 +1342,7 @@ function renderWalletPnl(
           <tbody>${trendRows.map((point) => {
       const ts = Number(point?.[0]);
       const pnl = Number(point?.[1]);
-      const timeLabel = Number.isFinite(ts) ? new Date(ts).toLocaleString() : '—';
+      const timeLabel = Number.isFinite(ts) ? formatPnlTrendPointTime(ts) : '—';
       return `<tr>
               <td>${timeLabel}</td>
               <td style="text-align:right">${formatUsdCell(Number.isFinite(pnl) ? pnl : undefined)}</td>
@@ -1227,6 +1358,9 @@ function renderWalletPnl(
     </section>`;
 
   const assetCount = tokenMetrics.length;
+  const gainColorBounds = collectWalletGainColorBounds(
+    tokenMetrics.map((m) => computeWalletAssetGainRatio(m.buys?.volumeUsd, m.sells?.volumeUsd))
+  );
   const assetsTableHtml = tokenMetrics.length
     ? `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--assets">
       <h3 class="token-stats-group-title"><span>Assets (${assetCount})</span></h3>
@@ -1236,15 +1370,15 @@ function renderWalletPnl(
             <tr>
               <th class="wallet-assets-th-icon" scope="col" aria-label="Icon"></th>
               <th>Asset</th>
+              <th>Buy/Sell Amt</th>
               <th>Status</th>
               <th>Real. PnL</th>
               <th>Unreal. PnL</th>
               <th>Buys</th>
               <th>Sells</th>
-              <th>Buy amt</th>
               <th>Buy vol</th>
-              <th>Sell amt</th>
               <th>Sell vol</th>
+              <th>Gain</th>
               <th>Latest TX</th>
             </tr>
           </thead>
@@ -1262,15 +1396,15 @@ function renderWalletPnl(
       return `<tr>
         <td class="wallet-asset-icon-cell">${iconCell}</td>
         <td>${assetCell}</td>
+        <td class="wallet-asset-buysell-amt-cell">${renderWalletAssetBuySellAmtCell(metric)}</td>
         <td>${renderStatusBadge(metric.status)}</td>
         <td>${formatUsdCell(metric.realizedPnlUsd)}</td>
         <td>${formatUsdCell(metric.unrealizedPnlUsd)}</td>
         <td>${formatTradesCountHeatCell(metric.buys?.transactionCount, buysTxMin, buysTxMax)}</td>
         <td>${formatTradesCountHeatCell(metric.sells?.transactionCount, sellsTxMin, sellsTxMax)}</td>
-        <td>${formatNum(metric.buys?.tokenAmount)}</td>
         <td><span class="wallet-amt-vol-usd">${formatUsdFull(metric.buys?.volumeUsd)}</span></td>
-        <td>${formatNum(metric.sells?.tokenAmount)}</td>
         <td><span class="wallet-amt-vol-usd">${formatUsdFull(metric.sells?.volumeUsd)}</span></td>
+        <td style="text-align:center">${renderWalletAssetGainCell(metric.buys?.volumeUsd, metric.sells?.volumeUsd, gainColorBounds)}</td>
         <td class="wallet-asset-tx-cell">${renderLatestTradeCell(latestTrade.blocktime, latestTrade.signature, latestTrade.label)}</td>
       </tr>`;
     }).join('')}</tbody>
