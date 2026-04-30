@@ -1356,7 +1356,7 @@ function renderWalletPnl(
     const lose = Math.max(0, Math.round(Number(mergedSummary.losingTradesCount) || 0));
     return [
       { label: 'Winning', value: win, color: '#4ade80', avgGainMult: winAvgGainMult },
-      { label: 'Losing', value: lose, color: '#6b3232', avgGainMult: loseAvgGainMult },
+      { label: 'Losing', value: lose, color: '#a17a7a', avgGainMult: loseAvgGainMult },
     ];
   })();
 
