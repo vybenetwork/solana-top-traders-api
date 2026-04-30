@@ -285,6 +285,9 @@ function applySearchModeUI(): void {
   topTradersMeta.hidden = true;
   topTradersCards.hidden = true;
   applyWalletTopTradersTitle();
+  if (!tokenMode) {
+    requestAnimationFrame(() => syncWalletPieStackHeights());
+  }
 }
 
 function truncateAddress(addr: string | undefined): string {
@@ -558,14 +561,16 @@ function renderWalletPieCard(title: string, slices: WalletPieSlice[]): string {
     .filter((slice) => slice.value > 0);
   const total = normalized.reduce((sum, slice) => sum + slice.value, 0);
   if (total <= 0) {
-    const emptyBg = buildPieGradientWithGaps([0, 0], ['#3b82f6', '#22c55e']);
     const dash = '—';
-    const legendHtml = [
-      ['#3b82f6'],
-      ['#22c55e'],
-    ]
+    const isWinLose = title.toLowerCase().includes('winning') || title.toLowerCase().includes('losing');
+    const emptyColors = isWinLose
+      ? ['#22c55e', '#ef4444']
+      : ['#22c55e', '#ef4444', '#64748b'];
+    const emptyWeights = emptyColors.map(() => 1);
+    const emptyBg = buildPieGradientWithGaps(emptyWeights, emptyColors);
+    const legendHtml = emptyColors
       .map(
-        ([color]) => `<div class="wallet-pnl-pie-legend-item">
+        (color) => `<div class="wallet-pnl-pie-legend-item">
         <span class="wallet-pnl-pie-legend-swatch" style="background:${color}"></span>
         <span class="wallet-pnl-pie-legend-label">${dash}</span>
         <span class="wallet-pnl-pie-legend-meta">${dash} (${dash})</span>
@@ -610,6 +615,11 @@ function syncWalletPieStackHeights(): void {
     return;
   }
   const h = trendCard.getBoundingClientRect().height;
+  // Section hidden (e.g. token mode) yields 0 — do not persist 0px or pie stack collapses after mode switch.
+  if (h <= 1) {
+    pieStack.style.height = '';
+    return;
+  }
   pieStack.style.height = `${Math.max(0, Math.round(h))}px`;
 }
 
