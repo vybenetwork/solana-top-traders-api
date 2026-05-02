@@ -46,15 +46,24 @@ interface TokenTopPnlTraderRow {
   tradesCount?: number;
 }
 
-/** Second token pie: volume share by realized PnL ÷ volume (RoV / return-on-volume %) band. */
-const TOKEN_TRADER_ROI_VOLUME_BANDS: readonly { label: string; color: string }[] = [
-  { label: 'Below 0% RoV', color: '#be123c' },
-  { label: 'Between 0–10% RoV', color: '#fb923c' },
-  { label: 'Between 10–25% RoV', color: '#eab308' },
-  { label: 'Between 25–50% RoV', color: '#a3e635' },
-  { label: 'Between 50–100% RoV', color: '#4ade80' },
-  { label: '100%+ RoV', color: '#059669' },
+/** Second token pie: volume share by trader realized PnL (USD) band (not RoV %). */
+const TOKEN_VOLUME_BY_PNL_USD_BANDS: readonly { label: string; color: string; lo: number; hi: number | null }[] = [
+  { label: 'Below $0 realized PnL', color: '#be123c', lo: Number.NEGATIVE_INFINITY, hi: 0 },
+  { label: '$0 – $2.5k realized PnL', color: '#fb923c', lo: 0, hi: 2500 },
+  { label: '$2.5k – $15k', color: '#eab308', lo: 2500, hi: 15000 },
+  { label: '$15k – $75k', color: '#a3e635', lo: 15000, hi: 75000 },
+  { label: '$75k – $350k', color: '#4ade80', lo: 75000, hi: 350000 },
+  { label: '$350k+ realized PnL', color: '#059669', lo: 350000, hi: null },
 ];
+
+function pnlUsdBandIndex(pnl: number): number {
+  if (!Number.isFinite(pnl)) return -1;
+  for (let i = 0; i < TOKEN_VOLUME_BY_PNL_USD_BANDS.length; i++) {
+    const b = TOKEN_VOLUME_BY_PNL_USD_BANDS[i];
+    if (pnl >= b.lo && (b.hi === null || pnl < b.hi)) return i;
+  }
+  return TOKEN_VOLUME_BY_PNL_USD_BANDS.length - 1;
+}
 
 function traderRoiPercentFromRow(row: TokenTopPnlTraderRow): number | null {
   const vol = toNum(row.totalVolumeUsd);
@@ -64,24 +73,15 @@ function traderRoiPercentFromRow(row: TokenTopPnlTraderRow): number | null {
   return (pnl / vol) * 100;
 }
 
-function roiBandIndexFromPct(pct: number): number {
-  if (pct < 0) return 0;
-  if (pct < 10) return 1;
-  if (pct < 25) return 2;
-  if (pct < 50) return 3;
-  if (pct < 100) return 4;
-  return 5;
-}
-
-/** When coarse RoV buckets collapse, split the donut into at least this many slices (if enough traders). */
-const MIN_ROI_PIE_SEGMENTS = 6;
+/** Volume-by-PnL donut: this many slices when splitting by ~equal traded dollars (needs enough rows). */
+const MIN_VOLUME_PNL_PIE_SEGMENTS = 6;
 
 /** Profitable trade-tier pie: six bands — fixed “2” and “3–5” trades plus four high bands from canonical edges (merged by least trade-mass when needed). */
 const TRADE_TIER_PIE_SEGMENT_COUNT = 6;
 const TRADE_TIER_FIXED_TIER_COUNT = 2;
 const TRADE_TIER_HIGH_MERGE_SLOTS = TRADE_TIER_PIE_SEGMENT_COUNT - TRADE_TIER_FIXED_TIER_COUNT;
 
-/** Colors for equal-trader-count RoV bins (low → high RoV), aligned with coarse-band palette. */
+/** Colors for volume-by-PnL pie slices (low → high PnL order), aligned with coarse-band palette. */
 const ROI_EQUAL_COUNT_BIN_COLORS: readonly string[] = [
   '#be123c',
   '#fb923c',
@@ -91,7 +91,7 @@ const ROI_EQUAL_COUNT_BIN_COLORS: readonly string[] = [
   '#059669',
 ];
 
-/** Profitable trade-tier pie only: light → dark blue (distinct from RoV volume pie). */
+/** Profitable trade-tier pie only: light → dark blue (distinct from volume-by-PnL pie). */
 const TRADE_TIER_PIE_COLORS: readonly string[] = [
   '#e0f2fe',
   '#7dd3fc',
@@ -107,18 +107,6 @@ const TIER_LEGEND_SVG_USER =
 
 const TIER_LEGEND_SVG_STACK =
   '<svg class="token-tier-metric__svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 10h16v2H4v-2zm0-4h16v2H4V6zm0 8h16v2H4v-2z"/></svg>';
-
-function formatRoiSpan(lo: number, hi: number): string {
-  const fmt = (x: number) => {
-    if (!Number.isFinite(x)) return '—';
-    const ax = Math.abs(x);
-    const decimals = ax >= 100 ? 0 : ax >= 10 ? 1 : 2;
-    return `${x.toFixed(decimals)}%`;
-  };
-  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return '—';
-  if (Math.abs(hi - lo) < 1e-9) return fmt(lo);
-  return `${fmt(lo)}–${fmt(hi)}`;
-}
 
 interface WalletPnlSummaryTokenRef {
   mintAddress?: string;
@@ -450,6 +438,20 @@ function formatUsdFull(n: number | null | undefined): string {
   return `${sign}$${Math.abs(Math.round(num)).toLocaleString()}`;
 }
 
+function formatUsdBandSpan(lo: number, hi: number): string {
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return '—';
+  const fmt = (x: number): string => {
+    const num = Number(x);
+    if (!Number.isFinite(num)) return '—';
+    const sign = num < 0 ? '-' : '';
+    const ax = Math.abs(num);
+    if (ax === 0) return '$0';
+    if (ax < 1) return `${sign}$${ax.toFixed(4)}`;
+    return formatUsdFull(num);
+  };
+  return `${fmt(lo)}–${fmt(hi)}`;
+}
+
 function usdToneClass(n: number | null | undefined): string {
   const num = Number(n);
   if (!Number.isFinite(num)) return 'usd-tone--neutral';
@@ -462,7 +464,7 @@ function formatUsdCell(n: number | null | undefined): string {
   return `<span class="usd-tone ${usdToneClass(n)}">${formatUsdFull(n)}</span>`;
 }
 
-/** Realized PnL ÷ volume for the row; same basis as token RoV pies. */
+/** Realized PnL ÷ volume for the row (RoV %); used in top-PnL table, not the volume-by-PnL pie. */
 function formatRovPctCell(row: TokenTopPnlTraderRow): string {
   const pct = traderRoiPercentFromRow(row);
   if (pct == null) return '<span class="usd-tone usd-tone--neutral">—</span>';
@@ -1098,7 +1100,23 @@ function formatPrice(n: number | null | undefined): string {
   return trim(num.toFixed(12));
 }
 
-/** Token stats: tiny prices as 0.0<sup>n</sup>abcd (n = leading zeros after decimal; abcd = 4 digits after first non-zero). */
+/** Parse `0.0123…` → leading `0` count after `.` before first 1–9, and remaining significant digits. */
+function parseLeadingZeroFraction(normalized: string): { zeroRun: number; sigRest: string } | null {
+  const m = normalized.match(/^0\.(\d*)$/);
+  if (!m) return null;
+  const frac = m[1] ?? '';
+  let i = 0;
+  while (i < frac.length && frac[i] === '0') i++;
+  if (i >= frac.length) return { zeroRun: frac.length, sigRest: '' };
+  return { zeroRun: i, sigRest: frac.slice(i) };
+}
+
+/**
+ * Token stats: sub-unity prices as 0.0<sup>n</sup> + mantissa.
+ * - n = count of `0` after decimal before first non-zero digit.
+ * - If n ≤ 1: show exactly **4** digits after that first non-zero (omit the first digit in the mantissa), e.g. 0.0562033 → ^1 + `6203`.
+ * - If n ≥ 2: show **4** significant digits total, e.g. 0.0000062404 → ^5 + `6240`.
+ */
 function formatTokenStatPriceValueHtml(
   n: number | null | undefined,
   opts?: { usdSuffix?: boolean },
@@ -1118,22 +1136,21 @@ function formatTokenStatPriceValueHtml(
   if (num >= 1) {
     return `${minus}<span class="token-stat-row-price-num">${escapeHtmlText(formatPrice(neg ? -num : num))}</span>${suffix}`;
   }
-  if (num > 0.0099) {
-    return `${minus}<span class="token-stat-row-price-num">${escapeHtmlText(formatPrice(neg ? -num : num))}</span>${suffix}`;
-  }
 
   const s = num.toFixed(24).replace(/\.?0+$/, '');
-  const m = s.match(/^0\.(0*)([1-9]\d*)$/);
-  if (!m) {
+  const parsed = parseLeadingZeroFraction(s);
+  if (!parsed || parsed.sigRest.length === 0) {
     return `${minus}<span class="token-stat-row-price-num">${escapeHtmlText(formatPrice(neg ? -num : num))}</span>${suffix}`;
   }
-  const zeroRun = m[1].length;
-  const sigDigits = m[2];
-  const head = sigDigits[0];
-  const tail = sigDigits.slice(1, 5);
-  const compact = `${head}${tail}`;
 
-  return `${minus}<span class="token-stat-row-price-num token-stat-row-price-num--compact">0.0<sup class="token-price-zero-run">${String(zeroRun)}</sup>${escapeHtmlText(compact)}</span>${suffix}`;
+  const { zeroRun, sigRest } = parsed;
+  if (zeroRun === 0) {
+    return `${minus}<span class="token-stat-row-price-num">${escapeHtmlText(formatPrice(neg ? -num : num))}</span>${suffix}`;
+  }
+
+  const mantissa = zeroRun <= 1 ? sigRest.slice(1, 5) : sigRest.slice(0, 4);
+
+  return `${minus}<span class="token-stat-row-price-num token-stat-row-price-num--compact">0.0<sup class="token-price-zero-run">${String(zeroRun)}</sup>${escapeHtmlText(mantissa)}</span>${suffix}`;
 }
 
 const tokenSectionIcons: Record<string, string> = {
@@ -2020,7 +2037,7 @@ function syncTokenSupplySectionHeadingsForResolution(): void {
   const resolutionLabel = formatResolutionSectionLabel(tokenTopPnlResolution.value);
   const titleResolution = formatResolutionForTitle(resolutionLabel);
   tokenSupplySelectedTitle.textContent = resolutionLabel;
-  tokenTopVolumeSelectedTitle.textContent = `Volume by RoV (Last ${titleResolution})`;
+  tokenTopVolumeSelectedTitle.textContent = `Volume by PnL amount (Last ${titleResolution})`;
   setTradeTierDashboardMeta(titleResolution, resolutionLabel);
   tokenPnlSelectedTitle.textContent = `PnL distribution (Last ${titleResolution})`;
   tokenTradesCountSelectedTitle.textContent = `Trades count distribution (Last ${titleResolution})`;
@@ -2141,10 +2158,10 @@ function buildTokenPnlBarPlaceholderRow(
 
 function applyTokenModeChartsPlaceholder(): void {
   tokenSupplyPieTotal.style.background = buildPieGradientWithGaps(
-    new Array(TOKEN_TRADER_ROI_VOLUME_BANDS.length).fill(0),
-    TOKEN_TRADER_ROI_VOLUME_BANDS.map((b) => b.color)
+    new Array(TOKEN_VOLUME_BY_PNL_USD_BANDS.length).fill(0),
+    TOKEN_VOLUME_BY_PNL_USD_BANDS.map((b) => b.color)
   );
-  tokenSupplyLegendTotal.innerHTML = TOKEN_TRADER_ROI_VOLUME_BANDS.map((b) =>
+  tokenSupplyLegendTotal.innerHTML = TOKEN_VOLUME_BY_PNL_USD_BANDS.map((b) =>
     renderPieLegendRowPlaceholder(b.label, b.color)
   ).join('');
   clearDonutPieOverlays(tokenSupplyPieTotal);
@@ -2225,297 +2242,6 @@ function formatUsdBucketValue(value: number): string {
   const fixed = abs.toFixed(6).replace(/\.?0+$/, '');
   const core = fixed.length > 0 && Number(fixed) > 0 ? fixed : abs.toExponential(2);
   return `${sign}$${core}`;
-}
-
-type PnlDistributionGroup = {
-  label: string;
-  count: number;
-  tone: 'positive' | 'negative' | 'neutral';
-  lower?: number;
-  upper?: number;
-};
-
-function isZeroPnlGroup(group: PnlDistributionGroup): boolean {
-  return group.tone === 'neutral' && group.label === '0';
-}
-
-/** Positives: highest USD band first; then exact-zero row; then negatives (closest to 0 first). */
-function sortPnlDistributionGroups(groups: PnlDistributionGroup[]): PnlDistributionGroup[] {
-  const positives = groups.filter((g) => g.tone === 'positive');
-  const zeroRow = groups.filter((g) => isZeroPnlGroup(g));
-  const otherNeutral = groups.filter((g) => g.tone === 'neutral' && !isZeroPnlGroup(g));
-  const negatives = groups.filter((g) => g.tone === 'negative');
-
-  const posUpper = (g: PnlDistributionGroup) => Number(g.upper ?? 0);
-  positives.sort((a, b) => posUpper(b) - posUpper(a) || Number(b.lower ?? 0) - Number(a.lower ?? 0));
-
-  const negUpper = (g: PnlDistributionGroup) => Number(g.upper ?? 0);
-  negatives.sort((a, b) => negUpper(b) - negUpper(a) || Number(b.lower ?? 0) - Number(a.lower ?? 0));
-
-  return [...positives, ...zeroRow, ...otherNeutral, ...negatives];
-}
-
-function formatPnlRangeLabel(tone: 'positive' | 'negative', lower: number, upper: number): string {
-  if (tone === 'positive') {
-    return lower === 0
-      ? `> ${formatUsdBucketValue(0)} to ${formatUsdBucketValue(upper)}`
-      : `${formatUsdBucketValue(lower)} to ${formatUsdBucketValue(upper)}`;
-  }
-  return upper === 0
-    ? `< ${formatUsdBucketValue(0)} to ${formatUsdBucketValue(lower)}`
-    : `${formatUsdBucketValue(upper)} to ${formatUsdBucketValue(lower)}`;
-}
-
-function expandPnlGroupsToTarget(groups: PnlDistributionGroup[], values: number[], targetCount: number): PnlDistributionGroup[] {
-  if (groups.length >= targetCount) return sortPnlDistributionGroups([...groups]);
-  const expanded = [...groups];
-  const safeTarget = Math.max(groups.length, targetCount);
-  const splitStepPriority = [0.05, 0.03, 0.02, 0.01];
-
-  const countValuesInRange = (tone: 'positive' | 'negative', lower: number, upper: number): number => {
-    if (tone === 'positive') {
-      return values.filter((v) => v > lower && v <= upper).length;
-    }
-    return values.filter((v) => v >= lower && v < upper).length;
-  };
-
-  /** Reject splits like 72+2 so we subdivide heavy buckets instead of carving off singletons. */
-  const minSmallerChildForSplit = (parentCount: number): number => {
-    if (parentCount <= 8) return 1;
-    if (parentCount >= 80) return 2;
-    return 1;
-  };
-
-  const snapToStep = (value: number, step: number): number => {
-    if (!Number.isFinite(value)) return value;
-    const snapped = Math.round(value / step) * step;
-    return Number(snapped.toFixed(6));
-  };
-
-  /** Try (lower, split] / (split, upper] for positives, or [lower,split) / [split,upper) for negatives. */
-  const trySplitBucket = (
-    tone: 'positive' | 'negative',
-    lower: number,
-    upper: number,
-    split: number,
-    parentCount: number,
-    minStep: number
-  ): PnlDistributionGroup[] | null => {
-    if (!Number.isFinite(split) || split <= lower || split >= upper) return null;
-    const span = upper - lower;
-    const snappedSplit = snapToStep(split, minStep);
-    if (!Number.isFinite(snappedSplit) || snappedSplit <= lower || snappedSplit >= upper) return null;
-    if ((snappedSplit - lower) < minStep || (upper - snappedSplit) < minStep) return null;
-    const minGap = Math.max(1e-12, Math.abs(span) * 1e-5);
-    if (snappedSplit - lower < minGap || upper - snappedSplit < minGap) return null;
-    const lowCount = countValuesInRange(tone, lower, snappedSplit);
-    const highCount = countValuesInRange(tone, snappedSplit, upper);
-    if (lowCount <= 0 || highCount <= 0) return null;
-    const minChild = minSmallerChildForSplit(parentCount);
-    if (Math.min(lowCount, highCount) < minChild) return null;
-    if (tone === 'positive') {
-      const hi: PnlDistributionGroup = {
-        label: formatPnlRangeLabel('positive', snappedSplit, upper),
-        count: highCount,
-        tone: 'positive',
-        lower: snappedSplit,
-        upper,
-      };
-      const lo: PnlDistributionGroup = {
-        label: formatPnlRangeLabel('positive', lower, snappedSplit),
-        count: lowCount,
-        tone: 'positive',
-        lower,
-        upper: snappedSplit,
-      };
-      if (hi.label === lo.label) return null;
-      return [hi, lo];
-    }
-    const hi: PnlDistributionGroup = {
-      label: formatPnlRangeLabel('negative', snappedSplit, upper),
-      count: highCount,
-      tone: 'negative',
-      lower: snappedSplit,
-      upper,
-    };
-    const lo: PnlDistributionGroup = {
-      label: formatPnlRangeLabel('negative', lower, snappedSplit),
-      count: lowCount,
-      tone: 'negative',
-      lower,
-      upper: snappedSplit,
-    };
-    if (hi.label === lo.label) return null;
-    return [hi, lo];
-  };
-
-  const splitFractions = [0.5, 0.33, 0.67, 0.25, 0.75];
-  let guard = 0;
-  const maxIters = 64;
-  /** When zero dominates, split buckets this large before touching tiny ones (2nd/3rd rows stay ~60–70). */
-  const heavyCountFloor = 8;
-
-  while (expanded.length < safeTarget && guard < maxIters) {
-    guard += 1;
-    const splittableMeta = expanded
-      .map((group, index) => ({ group, index }))
-      .filter(({ group }) => (
-        group.tone !== 'neutral'
-        && group.count > 1
-        && Number.isFinite(group.lower)
-        && Number.isFinite(group.upper)
-        && Math.abs(Number(group.upper) - Number(group.lower)) > Number.EPSILON
-      ));
-
-    if (splittableMeta.length === 0) break;
-
-    const splittableIndexSet = new Set(splittableMeta.map((s) => s.index));
-
-    const rankedByCount = expanded
-      .map((group, index) => ({ group, index }))
-      .sort((a, b) => b.group.count - a.group.count || a.index - b.index);
-
-    const zeroDominates = rankedByCount.length > 0 && isZeroPnlGroup(rankedByCount[0].group);
-
-    const rankedNonZeroSplittable = rankedByCount.filter(
-      ({ group, index }) => !isZeroPnlGroup(group) && splittableIndexSet.has(index)
-    );
-
-    let splitQueue = rankedNonZeroSplittable;
-    if (zeroDominates) {
-      const heavy = rankedNonZeroSplittable.filter(({ group }) => group.count >= heavyCountFloor);
-      const light = rankedNonZeroSplittable.filter(({ group }) => group.count < heavyCountFloor);
-      splitQueue = heavy.length > 0 ? [...heavy, ...light] : rankedNonZeroSplittable;
-    }
-
-    let didSplit = false;
-    for (const candidate of splitQueue) {
-      const source = candidate.group;
-      const lower = Number(source.lower);
-      const upper = Number(source.upper);
-      const tone = source.tone as 'positive' | 'negative';
-      const parentCount = source.count;
-
-      let replacement: PnlDistributionGroup[] | null = null;
-      for (const minStep of splitStepPriority) {
-        // Evaluate all valid boundaries for this step, choose the most balanced split.
-        let bestSplit: number | null = null;
-        let bestBalance = -1;
-        const firstBoundary = snapToStep(lower + minStep, minStep);
-        const lastBoundary = snapToStep(upper - minStep, minStep);
-        for (let split = firstBoundary; split <= lastBoundary + 1e-9; split = Number((split + minStep).toFixed(6))) {
-          const lowCount = countValuesInRange(tone, lower, split);
-          const highCount = countValuesInRange(tone, split, upper);
-          const minChild = minSmallerChildForSplit(parentCount);
-          const balance = Math.min(lowCount, highCount);
-          if (balance < minChild) continue;
-          const tentative = trySplitBucket(tone, lower, upper, split, parentCount, minStep);
-          if (!tentative) continue;
-          if (balance > bestBalance) {
-            bestBalance = balance;
-            bestSplit = split;
-          }
-        }
-        if (bestSplit != null) {
-          replacement = trySplitBucket(tone, lower, upper, bestSplit, parentCount, minStep);
-          if (replacement) break;
-        }
-      }
-
-      // Fallback: geometric split attempts if no grid boundary worked.
-      if (!replacement) {
-        const span = upper - lower;
-        for (const minStep of splitStepPriority) {
-          for (const frac of splitFractions) {
-            const split = lower + span * frac;
-            replacement = trySplitBucket(tone, lower, upper, split, parentCount, minStep);
-            if (replacement) break;
-          }
-          if (replacement) break;
-        }
-      }
-
-      if (!replacement && parentCount >= heavyCountFloor) {
-        const inRange =
-          tone === 'positive'
-            ? values.filter((v) => v > lower && v <= upper).sort((a, b) => a - b)
-            : values.filter((v) => v >= lower && v < upper).sort((a, b) => a - b);
-        if (inRange.length >= 2) {
-          const mid = Math.floor(inRange.length / 2);
-          const split = (inRange[mid - 1] + inRange[mid]) / 2;
-          for (const minStep of splitStepPriority) {
-            replacement = trySplitBucket(tone, lower, upper, split, parentCount, minStep);
-            if (replacement) break;
-          }
-        }
-      }
-
-      if (!replacement) continue;
-
-      expanded.splice(candidate.index, 1, ...replacement);
-      didSplit = true;
-      break;
-    }
-
-    if (!didSplit) break;
-  }
-
-  const shortfall = safeTarget - expanded.length;
-  if (shortfall >= 1 && shortfall <= 2 && expanded.length > 0) {
-    const sameBound = (a: number, b: number) => Math.abs(a - b) < 1e-9;
-    const posUppers = expanded
-      .filter((g) => g.tone === 'positive' && Number.isFinite(g.upper))
-      .map((g) => Number(g.upper));
-    if (posUppers.length > 0) {
-      const posMax = Math.max(0, ...values.filter((v) => v > 0));
-      let edges = buildTierEdges(posMax);
-      let low = Math.max(...posUppers);
-      const padding: PnlDistributionGroup[] = [];
-      let added = 0;
-      let guard = 0;
-      while (added < shortfall && guard < 48) {
-        guard += 1;
-        let hiIdx = edges.findIndex((e) => e > low + 1e-12);
-        while (hiIdx < 0) {
-          edges = [...edges, edges[edges.length - 1] * 10];
-          hiIdx = edges.findIndex((e) => e > low + 1e-12);
-        }
-        const high = edges[hiIdx];
-        const bracketTaken = expanded.some(
-          (g) =>
-            g.tone === 'positive'
-            && g.lower != null
-            && g.upper != null
-            && sameBound(Number(g.lower), low)
-            && sameBound(Number(g.upper), high)
-        );
-        if (bracketTaken) {
-          low = high;
-          continue;
-        }
-        padding.push({
-          label: formatPnlRangeLabel('positive', low, high),
-          count: 0,
-          tone: 'positive',
-          lower: low,
-          upper: high,
-        });
-        low = high;
-        added += 1;
-      }
-      expanded.push(...padding);
-    }
-  }
-
-  return sortPnlDistributionGroups(expanded);
-}
-
-function buildTierEdges(maxAbs: number): number[] {
-  const edges = [0, 0.5, 1, 10, 100, 1000];
-  while (edges[edges.length - 1] < maxAbs) {
-    edges.push(edges[edges.length - 1] * 10);
-  }
-  return edges;
 }
 
 function buildCountTierEdges(maxVal: number): number[] {
@@ -2903,33 +2629,23 @@ function mountDonutPieOverlays(
   mountDonutPieCenterHub(pieEl, hub);
 }
 
-function applyMaxPnlGroups(
-  groups: PnlDistributionGroup[],
-  maxGroups: number
-): PnlDistributionGroup[] {
-  if (groups.length <= maxGroups) return groups;
-  const safeMax = Math.max(1, maxGroups);
-  const keep = groups.slice(0, safeMax - 1);
-  const overflow = groups.slice(safeMax - 1);
-  const overflowCount = overflow.reduce((sum, g) => sum + g.count, 0);
-  const overflowTone = overflow.some((g) => g.tone === 'negative')
-    ? 'negative'
-    : overflow.some((g) => g.tone === 'positive')
-      ? 'positive'
-      : 'neutral';
-  keep.push({
-    label: `${overflow[0]?.label ?? 'Other'} and below`,
-    count: overflowCount,
-    tone: overflowTone,
-  });
-  return keep;
-}
+/** Realized PnL (USD) bands for the token PnL bar chart: (lower, upper], high → low; top row is (100, ∞). */
+const CANONICAL_POSITIVE_PNL_DIST_USD_BANDS: readonly { label: string; lower: number; upper: number }[] = [
+  { label: '$100 to $1,000', lower: 100, upper: Number.POSITIVE_INFINITY },
+  { label: '$10 to $100', lower: 10, upper: 100 },
+  { label: '$1 to $10', lower: 1, upper: 10 },
+  { label: '$0.50 to $1', lower: 0.5, upper: 1 },
+  { label: '$0.10 to $0.50', lower: 0.1, upper: 0.5 },
+  { label: '$0.05 to $0.10', lower: 0.05, upper: 0.1 },
+  { label: '$0.02 to $0.05', lower: 0.02, upper: 0.05 },
+  { label: '> $0 to $0.02', lower: 0, upper: 0.02 },
+];
 
 function renderPnlDistributionBars(
   rows: TokenTopPnlTraderRow[],
   topLimit: number,
   target: HTMLElement,
-  maxGroups: number
+  _maxGroups: number
 ): void {
   const limitN = Math.max(1, topLimit);
   const values = rows
@@ -2942,59 +2658,20 @@ function renderPnlDistributionBars(
     return;
   }
 
-  const groups: PnlDistributionGroup[] = [];
   const positiveValues = values.filter((pnl) => pnl > 0);
-  const positiveEdges = buildTierEdges(Math.max(0, ...positiveValues));
-  for (let i = positiveEdges.length - 1; i >= 1; i--) {
-    const lower = positiveEdges[i - 1];
-    const upper = positiveEdges[i];
-    const count = positiveValues.filter((pnl) => pnl > lower && pnl <= upper).length;
-    if (count === 0) continue;
-    groups.push({
-      label: formatPnlRangeLabel('positive', lower, upper),
-      count,
-      tone: 'positive',
-      lower,
-      upper,
-    });
-  }
+  const groups = CANONICAL_POSITIVE_PNL_DIST_USD_BANDS.map((band) => ({
+    label: band.label,
+    count: positiveValues.filter((pnl) => pnl > band.lower && pnl <= band.upper).length,
+  }));
 
-  const zeroCount = values.filter((pnl) => pnl === 0).length;
-  if (zeroCount > 0) groups.push({ label: '0', count: zeroCount, tone: 'neutral', lower: 0, upper: 0 });
-
-  const negativeValues = values.filter((pnl) => pnl < 0);
-  const negativeEdges = buildTierEdges(Math.max(0, ...negativeValues.map((pnl) => Math.abs(pnl))));
-  for (let i = 1; i < negativeEdges.length; i++) {
-    const upper = -negativeEdges[i - 1];
-    const lower = -negativeEdges[i];
-    const count = negativeValues.filter((pnl) => pnl >= lower && pnl < upper).length;
-    if (count === 0) continue;
-    groups.push({
-      label: formatPnlRangeLabel('negative', lower, upper),
-      count,
-      tone: 'negative',
-      lower,
-      upper,
-    });
-  }
-
-  if (groups.length === 0) {
-    target.innerHTML = '<div class="token-pnl-bar-label">No non-zero PnL groups for current selection.</div>';
-    return;
-  }
-
-  const expandedGroups = (maxGroups === 9 || maxGroups === 8)
-    ? expandPnlGroupsToTarget(groups, values, maxGroups)
-    : groups;
-  const limitedGroups = applyMaxPnlGroups(expandedGroups, maxGroups);
-  const maxCount = Math.max(1, ...limitedGroups.map((g) => g.count));
-  target.innerHTML = limitedGroups
+  const maxCount = Math.max(1, ...groups.map((g) => g.count));
+  target.innerHTML = groups
     .map((group) => {
       const widthPct = (group.count / maxCount) * 100;
       return `<div class="token-pnl-bar-row">
         <div class="token-pnl-bar-label">${group.label}</div>
         <div class="token-pnl-bar-track">
-          <div class="token-pnl-bar-fill token-pnl-bar-fill--${group.tone}" style="width:${widthPct.toFixed(2)}%"></div>
+          <div class="token-pnl-bar-fill token-pnl-bar-fill--positive" style="width:${widthPct.toFixed(2)}%"></div>
           <span class="token-pnl-bar-count">${group.count}</span>
         </div>
       </div>`;
@@ -3432,21 +3109,55 @@ function roiProfitPieRowWeight(row: TokenTopPnlTraderRow): number {
   return Math.max(0, toNum(row.totalVolumeUsd));
 }
 
-function renderTopTraderRoiBandPie(rows: TokenTopPnlTraderRow[], target: { pie: HTMLElement; legend: HTMLElement }): void {
+/**
+ * Assign each trader row to a volume slice by realized PnL order so each slice holds ~1/k of total
+ * traded dollars (whole rows; empty quantile slots are dropped).
+ */
+function assignPnlItemsToNearEqualVolumeBins(
+  items: { weight: number; pnlUsd: number }[],
+  k: number
+): { weight: number; pnlLo: number; pnlHi: number }[] {
+  const sorted = [...items].sort((a, b) => a.pnlUsd - b.pnlUsd);
+  const total = sorted.reduce((s, x) => s + x.weight, 0);
+  if (total <= 0 || k <= 0 || sorted.length === 0) return [];
+
+  const binW = new Array(k).fill(0);
+  const binLo = new Array(k).fill(Infinity);
+  const binHi = new Array(k).fill(-Infinity);
+  let cum = 0;
+  for (const it of sorted) {
+    const mid = cum + it.weight / 2;
+    const b = Math.min(k - 1, Math.max(0, Math.floor((k * mid) / total)));
+    binW[b] += it.weight;
+    binLo[b] = Math.min(binLo[b], it.pnlUsd);
+    binHi[b] = Math.max(binHi[b], it.pnlUsd);
+    cum += it.weight;
+  }
+
+  const out: { weight: number; pnlLo: number; pnlHi: number }[] = [];
+  for (let i = 0; i < k; i++) {
+    if (binW[i] > 0 && Number.isFinite(binLo[i]) && Number.isFinite(binHi[i])) {
+      out.push({ weight: binW[i], pnlLo: binLo[i], pnlHi: binHi[i] });
+    }
+  }
+  return out;
+}
+
+function renderTopTraderVolumeByPnlUsdPie(rows: TokenTopPnlTraderRow[], target: { pie: HTMLElement; legend: HTMLElement }): void {
   const { pie, legend } = target;
 
-  const bandCount = TOKEN_TRADER_ROI_VOLUME_BANDS.length;
+  const bandCount = TOKEN_VOLUME_BY_PNL_USD_BANDS.length;
   const weightByBand = new Array(bandCount).fill(0);
   for (const row of rows) {
     const w = roiProfitPieRowWeight(row);
     if (w <= 0) continue;
-    const pct = traderRoiPercentFromRow(row);
-    if (pct == null) continue;
-    const idx = roiBandIndexFromPct(pct);
+    const pnl = toNum(row.realizedPnlUsd);
+    const idx = pnlUsdBandIndex(pnl);
+    if (idx < 0) continue;
     weightByBand[idx] += w;
   }
   const totalWeight = weightByBand.reduce((a, b) => a + b, 0);
-  const coarseColors = TOKEN_TRADER_ROI_VOLUME_BANDS.map((b) => b.color);
+  const coarseColors = TOKEN_VOLUME_BY_PNL_USD_BANDS.map((b) => b.color);
   if (totalWeight <= 0) {
     pie.style.background = buildPieGradientWithGaps([1], ['#27272a']);
     clearDonutPieOverlays(pie);
@@ -3459,12 +3170,10 @@ function renderTopTraderRoiBandPie(rows: TokenTopPnlTraderRow[], target: { pie: 
 
   const hubLine = `${formatUsdFull(totalWeight)} volume`;
 
-  const nonEmptyCoarse = weightByBand.filter((v) => v > 0).length;
-
   const renderCoarseBands = (): void => {
     const slicePcts = weightByBand.map((v) => (v / totalWeight) * 100);
     pie.style.background = buildPieGradientWithGaps(slicePcts, coarseColors);
-    legend.innerHTML = TOKEN_TRADER_ROI_VOLUME_BANDS.map((def, i) => {
+    legend.innerHTML = TOKEN_VOLUME_BY_PNL_USD_BANDS.map((def, i) => {
       const w = weightByBand[i];
       const pct = slicePcts[i];
       if (w <= 0) return '';
@@ -3473,47 +3182,33 @@ function renderTopTraderRoiBandPie(rows: TokenTopPnlTraderRow[], target: { pie: 
     mountDonutPieOverlays(pie, slicePcts, coarseColors, { mock: false, hubSubline: hubLine });
   };
 
-  if (nonEmptyCoarse >= MIN_ROI_PIE_SEGMENTS) {
-    renderCoarseBands();
-    return;
-  }
-
-  const roiItems: { weight: number; roi: number }[] = [];
+  const pnlItems: { weight: number; pnlUsd: number }[] = [];
   for (const row of rows) {
     const weight = roiProfitPieRowWeight(row);
     if (weight <= 0) continue;
-    const roi = traderRoiPercentFromRow(row);
-    if (roi == null) continue;
-    roiItems.push({ weight, roi });
+    const pnlUsd = toNum(row.realizedPnlUsd);
+    if (!Number.isFinite(pnlUsd)) continue;
+    pnlItems.push({ weight, pnlUsd });
   }
 
-  if (roiItems.length < MIN_ROI_PIE_SEGMENTS) {
+  const k = MIN_VOLUME_PNL_PIE_SEGMENTS;
+  if (pnlItems.length < k) {
     renderCoarseBands();
     return;
   }
 
-  roiItems.sort((a, b) => a.roi - b.roi);
-  const n = roiItems.length;
-  const k = MIN_ROI_PIE_SEGMENTS;
-  const binWeight = new Array(k).fill(0);
-  const binLo = new Array(k).fill(Infinity);
-  const binHi = new Array(k).fill(-Infinity);
-  for (let idx = 0; idx < n; idx++) {
-    const it = roiItems[idx];
-    const b = Math.min(k - 1, Math.floor((k * idx) / n));
-    binWeight[b] += it.weight;
-    binLo[b] = Math.min(binLo[b], it.roi);
-    binHi[b] = Math.max(binHi[b], it.roi);
+  const volumeBins = assignPnlItemsToNearEqualVolumeBins(pnlItems, k);
+  if (volumeBins.length === 0) {
+    renderCoarseBands();
+    return;
   }
 
-  const segments: { label: string; color: string; weight: number }[] = [];
-  for (let i = 0; i < k; i++) {
-    segments.push({
-      label: `Between ${formatRoiSpan(binLo[i], binHi[i])} RoV`,
-      color: ROI_EQUAL_COUNT_BIN_COLORS[i],
-      weight: binWeight[i] ?? 0,
-    });
-  }
+  const colors = ROI_EQUAL_COUNT_BIN_COLORS;
+  const segments: { label: string; color: string; weight: number }[] = volumeBins.map((bin, i) => ({
+    label: `Between ${formatUsdBandSpan(bin.pnlLo, bin.pnlHi)} realized PnL`,
+    color: colors[i % colors.length],
+    weight: bin.weight,
+  }));
 
   const segTotal = segments.reduce((s, x) => s + x.weight, 0);
   const slicePcts = segments.map((s) => (s.weight / segTotal) * 100);
@@ -3574,7 +3269,7 @@ function renderTopTraderSelectedResolutionCharts(rows: TokenTopPnlTraderRow[], t
     tokenTradesCountBarsVertical.innerHTML = '';
   }
 
-  renderTopTraderRoiBandPie(volumeRows, {
+  renderTopTraderVolumeByPnlUsdPie(volumeRows, {
     pie: tokenSupplyPieTotal,
     legend: tokenSupplyLegendTotal,
   });

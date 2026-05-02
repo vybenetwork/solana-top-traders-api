@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Solana Top Traders Wallets & Tokens</title>
-  <link rel="stylesheet" href="app.css?v=141" />
+  <link rel="stylesheet" href="app.css?v=144" />
 </head>
 <body>
   <div class="container">
@@ -339,13 +339,13 @@
         </div>
       </div>
       <div class="token-supply-grid">
-        <div class="token-supply-card token-supply-card--volume-rov-pie">
+        <div class="token-supply-card token-supply-card--volume-pnl-pie">
           <div class="section-header">
-            <h2 id="tokenTopVolumeSelectedTitle">Volume by RoV (Last 30 Days)</h2>
+            <h2 id="tokenTopVolumeSelectedTitle">Volume by PnL amount (Last 30 Days)</h2>
           </div>
-          <p class="meta token-supply-card-desc">Dollar share per return-on-volume (RoV) band — realized PnL ÷ volume. Each slice is the fraction of total traded dollars in that RoV range.</p>
+          <p class="meta token-supply-card-desc">Dollar share by each trader’s realized PnL (USD) band. Slice size is that band’s share of total traded dollars in the top list.</p>
           <div class="token-supply-wrap">
-            <div class="token-supply-pie token-supply-pie--donut-labels" id="tokenSupplyPieTotal" aria-label="Dollar share by return on volume (RoV)"></div>
+            <div class="token-supply-pie token-supply-pie--donut-labels" id="tokenSupplyPieTotal" aria-label="Dollar share by realized PnL amount"></div>
             <div class="token-supply-legend token-supply-legend--compact-grid" id="tokenSupplyLegendTotal"></div>
           </div>
         </div>
@@ -448,6 +448,6 @@
       <pre id="errorText"></pre>
     </section>
   </div>
-  <script src="app.js?v=141"></script>
+  <script src="app.js?v=144"></script>
 </body>
 </html>

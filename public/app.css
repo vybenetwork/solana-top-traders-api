@@ -827,16 +827,16 @@ button:active {
 
 .token-section-content .token-stat-row-value {
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 450;
   line-height: 1.35;
-  color: #e4e4e7;
+  color: #d4d4d8;
   font-variant-numeric: tabular-nums;
   word-break: break-word;
 }
 
 .token-section-content .token-stat-row-price-num {
-  font-weight: 500;
-  color: #e4e4e7;
+  font-weight: 450;
+  color: #d4d4d8;
 }
 
 .token-section-content .token-stat-row-price-num--compact {
@@ -845,29 +845,29 @@ button:active {
 
 .token-section-content .token-price-zero-run {
   font-size: 0.62em;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 0;
   vertical-align: super;
   margin-left: 0.03em;
-  color: #cbd5e1;
+  color: #a1a1aa;
 }
 
 .token-section-content .token-stat-price-suffix {
   margin-left: 0.28em;
   font-size: 0.72em;
-  font-weight: 500;
+  font-weight: 450;
   color: #94a3b8;
 }
 
 .token-section-content .token-stat-price-neg {
   margin-right: 0.06em;
-  font-weight: 500;
-  color: #e4e4e7;
+  font-weight: 450;
+  color: #d4d4d8;
 }
 
 .token-section-content .token-stat-row-value a {
   color: #38bdf8;
-  font-weight: 500;
+  font-weight: 450;
   text-decoration: none;
 }
 
@@ -1329,11 +1329,11 @@ button:active {
 }
 
 /* Volume-by-profit % card only: breathe room under the card rim + slightly smaller donut. */
-.token-supply-card--volume-rov-pie {
+.token-supply-card--volume-pnl-pie {
   padding-top: calc(1rem + 6px);
 }
 
-.token-supply-card--volume-rov-pie .token-supply-pie {
+.token-supply-card--volume-pnl-pie .token-supply-pie {
   width: clamp(158px, 17vw, 208px);
 }
 
@@ -1480,7 +1480,7 @@ button:active {
   color: #86efac;
 }
 
-/* RoV total pie: two legend items per row, tighter type */
+/* Volume-by-PnL pie: two legend items per row, tighter type */
 .token-supply-legend--compact-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
