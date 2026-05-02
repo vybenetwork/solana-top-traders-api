@@ -69,10 +69,10 @@ type PieSliceSpec = string | { dark: string; light: string };
  * $1–$10); all positive realized PnL through $1 merges into one (0, 1] slice.
  */
 const VOLUME_PNL_PIE_MERGED_USD_BANDS: readonly { label: string; lower: number; upper: number }[] = [
-  { label: '$100 to $1,000', lower: 100, upper: Number.POSITIVE_INFINITY },
-  { label: '$10 to $100', lower: 10, upper: 100 },
-  { label: '$1 to $10', lower: 1, upper: 10 },
-  { label: '> $0 to $1', lower: 0, upper: 1 },
+  { label: '$100 to $1,000 PNL', lower: 100, upper: Number.POSITIVE_INFINITY },
+  { label: '$10 to $100 PNL', lower: 10, upper: 100 },
+  { label: '$1 to $10 PNL', lower: 1, upper: 10 },
+  { label: '> $0 to $1 PNL', lower: 0, upper: 1 },
 ];
 
 /** Same sweep as `.token-pnl-bar-fill--negative`. */
