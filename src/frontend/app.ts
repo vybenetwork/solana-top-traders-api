@@ -46,23 +46,65 @@ interface TokenTopPnlTraderRow {
   tradesCount?: number;
 }
 
-/** Second token pie: volume share by trader realized PnL (USD) band (not RoV %). */
-const TOKEN_VOLUME_BY_PNL_USD_BANDS: readonly { label: string; color: string; lo: number; hi: number | null }[] = [
-  { label: 'Below $0 realized PnL', color: '#be123c', lo: Number.NEGATIVE_INFINITY, hi: 0 },
-  { label: '$0 – $2.5k realized PnL', color: '#fb923c', lo: 0, hi: 2500 },
-  { label: '$2.5k – $15k', color: '#eab308', lo: 2500, hi: 15000 },
-  { label: '$15k – $75k', color: '#a3e635', lo: 15000, hi: 75000 },
-  { label: '$75k – $350k', color: '#4ade80', lo: 75000, hi: 350000 },
-  { label: '$350k+ realized PnL', color: '#059669', lo: 350000, hi: null },
+/**
+ * Same eight fixed positive realized-PnL (USD) bands as the PnL bar chart: (lower, upper], high → low.
+ * Top band is (100, ∞); bottom is (0, 0.02].
+ */
+const CANONICAL_POSITIVE_PNL_DIST_USD_BANDS: readonly { label: string; lower: number; upper: number }[] = [
+  { label: '$100 to $1,000', lower: 100, upper: Number.POSITIVE_INFINITY },
+  { label: '$10 to $100', lower: 10, upper: 100 },
+  { label: '$1 to $10', lower: 1, upper: 10 },
+  { label: '$0.50 to $1', lower: 0.5, upper: 1 },
+  { label: '$0.10 to $0.50', lower: 0.1, upper: 0.5 },
+  { label: '$0.05 to $0.10', lower: 0.05, upper: 0.1 },
+  { label: '$0.02 to $0.05', lower: 0.02, upper: 0.05 },
+  { label: '> $0 to $0.02', lower: 0, upper: 0.02 },
 ];
 
-function pnlUsdBandIndex(pnl: number): number {
-  if (!Number.isFinite(pnl)) return -1;
-  for (let i = 0; i < TOKEN_VOLUME_BY_PNL_USD_BANDS.length; i++) {
-    const b = TOKEN_VOLUME_BY_PNL_USD_BANDS[i];
-    if (pnl >= b.lo && (b.hi === null || pnl < b.hi)) return i;
+/** Solid or `{ dark, light }` pair matching bar `linear-gradient(90deg, …)` endpoints. */
+type PieSliceSpec = string | { dark: string; light: string };
+
+/**
+ * Volume-by-PnL donut: four positive bands — top three rungs match the bar chart ($100+, $10–$100,
+ * $1–$10); all positive realized PnL through $1 merges into one (0, 1] slice.
+ */
+const VOLUME_PNL_PIE_MERGED_USD_BANDS: readonly { label: string; lower: number; upper: number }[] = [
+  { label: '$100 to $1,000', lower: 100, upper: Number.POSITIVE_INFINITY },
+  { label: '$10 to $100', lower: 10, upper: 100 },
+  { label: '$1 to $10', lower: 1, upper: 10 },
+  { label: '> $0 to $1', lower: 0, upper: 1 },
+];
+
+/** Same sweep as `.token-pnl-bar-fill--negative`. */
+const VOLUME_PNL_PIE_NONPOSITIVE_FILL: PieSliceSpec = { dark: '#dc2626', light: '#f87171' };
+
+function tradeScaleHue(t: number): number {
+  const clamped = Math.min(1, Math.max(0, t));
+  return 120 - clamped * 120;
+}
+
+/** Two stops matching `.token-pnl-bar-fill--trade-scale` (85%/42% → 92%/60%). */
+function tradeScaleBarGradientPair(t: number): { dark: string; light: string } {
+  const h = tradeScaleHue(t);
+  return {
+    dark: `hsl(${h} 85% 42%)`,
+    light: `hsl(${h} 92% 60%)`,
+  };
+}
+
+const _volumePnlMergedBandCount = VOLUME_PNL_PIE_MERGED_USD_BANDS.length;
+/** Donut slices: same per-row gradient as trade-count bars (`--trade-scale`). */
+const VOLUME_PNL_PIE_MERGED_SLICE_FILLS: readonly PieSliceSpec[] = Array.from({ length: _volumePnlMergedBandCount }, (_, i) =>
+  _volumePnlMergedBandCount <= 1 ? tradeScaleBarGradientPair(0) : tradeScaleBarGradientPair(i / (_volumePnlMergedBandCount - 1))
+);
+
+function volumePnlPieMergedBandIndex(pnl: number): number | null {
+  if (!Number.isFinite(pnl) || pnl <= 0) return null;
+  for (let i = 0; i < VOLUME_PNL_PIE_MERGED_USD_BANDS.length; i++) {
+    const b = VOLUME_PNL_PIE_MERGED_USD_BANDS[i];
+    if (pnl > b.lower && pnl <= b.upper) return i;
   }
-  return TOKEN_VOLUME_BY_PNL_USD_BANDS.length - 1;
+  return null;
 }
 
 function traderRoiPercentFromRow(row: TokenTopPnlTraderRow): number | null {
@@ -73,40 +115,28 @@ function traderRoiPercentFromRow(row: TokenTopPnlTraderRow): number | null {
   return (pnl / vol) * 100;
 }
 
-/** Volume-by-PnL donut: this many slices when splitting by ~equal traded dollars (needs enough rows). */
-const MIN_VOLUME_PNL_PIE_SEGMENTS = 6;
-
 /** Profitable trade-tier pie: six bands — fixed “2” and “3–5” trades plus four high bands from canonical edges (merged by least trade-mass when needed). */
 const TRADE_TIER_PIE_SEGMENT_COUNT = 6;
 const TRADE_TIER_FIXED_TIER_COUNT = 2;
 const TRADE_TIER_HIGH_MERGE_SLOTS = TRADE_TIER_PIE_SEGMENT_COUNT - TRADE_TIER_FIXED_TIER_COUNT;
 
-/** Colors for volume-by-PnL pie slices (low → high PnL order), aligned with coarse-band palette. */
-const ROI_EQUAL_COUNT_BIN_COLORS: readonly string[] = [
-  '#be123c',
-  '#fb923c',
-  '#eab308',
-  '#a3e635',
-  '#4ade80',
-  '#059669',
-];
-
-/** Profitable trade-tier pie only: light → dark blue (distinct from volume-by-PnL pie). */
-const TRADE_TIER_PIE_COLORS: readonly string[] = [
-  '#e0f2fe',
-  '#7dd3fc',
-  '#38bdf8',
-  '#0ea5e9',
-  '#0284c7',
-  '#0369a1',
-  '#0c4a6e',
-];
+/** Trade-tier donut: same two-stop ramp per slice as `.token-pnl-bar-fill--trade-scale`. */
+const TRADE_TIER_PIE_SLICE_FILLS: readonly PieSliceSpec[] = Array.from(
+  { length: TRADE_TIER_PIE_SEGMENT_COUNT },
+  (_, i) =>
+    TRADE_TIER_PIE_SEGMENT_COUNT <= 1
+      ? tradeScaleBarGradientPair(0)
+      : tradeScaleBarGradientPair(i / (TRADE_TIER_PIE_SEGMENT_COUNT - 1))
+);
 
 const TIER_LEGEND_SVG_USER =
   '<svg class="token-tier-metric__svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 
 const TIER_LEGEND_SVG_STACK =
   '<svg class="token-tier-metric__svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 10h16v2H4v-2zm0-4h16v2H4V6zm0 8h16v2H4v-2z"/></svg>';
+
+const TIER_LEGEND_SVG_VOLUME =
+  '<svg class="token-tier-metric__svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 12h4v8H3v-8zm7-4h4v12h-4V8zm7 6h4v6h-4v-6z"/></svg>';
 
 interface WalletPnlSummaryTokenRef {
   mintAddress?: string;
@@ -207,12 +237,17 @@ const tokenPnlBarsTotal = document.getElementById('tokenPnlBarsTotal') as HTMLEl
 const tokenSupplySelectedTitle = document.getElementById('tokenSupplySelectedTitle') as HTMLElement;
 const tokenPnlSelectedTitle = document.getElementById('tokenPnlSelectedTitle') as HTMLElement;
 const tokenTopVolumeSelectedTitle = document.getElementById('tokenTopVolumeSelectedTitle') as HTMLElement;
+const tokenVolumePnlLede = document.getElementById('tokenVolumePnlLede');
 const tokenTopTradesByProfitTitle = document.getElementById('tokenTopTradesByProfitTitle') as HTMLElement;
 const tokenTradeTierLede = document.getElementById('tokenTradeTierLede');
 const tokenTradeTierInsightText = document.getElementById('tokenTradeTierInsightText');
 const tokenTradeTierTimeframe = document.getElementById('tokenTradeTierTimeframe');
 const tokenTradeTierFooterMethodology = document.getElementById('tokenTradeTierFooterMethodology');
 const tokenTradeTierFooterScope = document.getElementById('tokenTradeTierFooterScope');
+const tokenVolumePnlInsightText = document.getElementById('tokenVolumePnlInsightText');
+const tokenVolumePnlTimeframe = document.getElementById('tokenVolumePnlTimeframe');
+const tokenVolumePnlFooterMethodology = document.getElementById('tokenVolumePnlFooterMethodology');
+const tokenVolumePnlFooterScope = document.getElementById('tokenVolumePnlFooterScope');
 const tokenSupplyCardDescPnl = document.getElementById('tokenSupplyCardDescPnl');
 const tokenSupplyCardDescTradesVertical = document.getElementById('tokenSupplyCardDescTradesVertical');
 const tokenTradesCountSelectedRow = document.getElementById('tokenTradesCountSelectedRow') as HTMLElement;
@@ -426,30 +461,36 @@ function formatInt(n: number | null | undefined): string {
   return Math.round(num).toLocaleString();
 }
 
+/**
+ * Compact $ suffix for |value| > 9999 — whole-number K / M / B only (no fractional part).
+ */
+function formatUsdCompactCore(abs: number): string {
+  if (abs >= 1e9) {
+    return `${Math.round(abs / 1e9)}B`;
+  }
+  if (abs >= 1e6) {
+    return `${Math.round(abs / 1e6)}M`;
+  }
+  const k = Math.round(abs / 1e3);
+  if (k >= 1000) {
+    return `${Math.round(abs / 1e6)}M`;
+  }
+  return `${k}K`;
+}
+
 function formatUsdFull(n: number | null | undefined): string {
   if (n == null) return '—';
   const num = Number(n);
   if (Number.isNaN(num)) return '—';
   const roundedToCent = Math.round(num * 100) / 100;
-  if (roundedToCent === 0) return '0';
+  if (roundedToCent === 0) return '$0';
   const abs = Math.abs(num);
   const sign = num < 0 ? '-' : '';
   if (abs < 1) return `${sign}$${abs.toFixed(2)}`;
+  if (abs > 9999) {
+    return `${sign}$${formatUsdCompactCore(abs)}`;
+  }
   return `${sign}$${Math.abs(Math.round(num)).toLocaleString()}`;
-}
-
-function formatUsdBandSpan(lo: number, hi: number): string {
-  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return '—';
-  const fmt = (x: number): string => {
-    const num = Number(x);
-    if (!Number.isFinite(num)) return '—';
-    const sign = num < 0 ? '-' : '';
-    const ax = Math.abs(num);
-    if (ax === 0) return '$0';
-    if (ax < 1) return `${sign}$${ax.toFixed(4)}`;
-    return formatUsdFull(num);
-  };
-  return `${fmt(lo)}–${fmt(hi)}`;
 }
 
 function usdToneClass(n: number | null | undefined): string {
@@ -462,6 +503,29 @@ function usdToneClass(n: number | null | undefined): string {
 
 function formatUsdCell(n: number | null | undefined): string {
   return `<span class="usd-tone ${usdToneClass(n)}">${formatUsdFull(n)}</span>`;
+}
+
+/**
+ * Top PnL traders table only: no K/M suffixes; `B` only for ≥ $1B. No fractional dollars unless amount is below $1.
+ */
+function formatUsdTokenTopPnlTable(n: number | null | undefined): string {
+  if (n == null) return '—';
+  const num = Number(n);
+  if (Number.isNaN(num)) return '—';
+  if (num === 0) return '$0';
+  const sign = num < 0 ? '-' : '';
+  const abs = Math.abs(num);
+  if (abs < 1) {
+    return `${sign}$${abs.toFixed(2)}`;
+  }
+  if (abs >= 1e9) {
+    return `${sign}$${Math.round(abs / 1e9)}B`;
+  }
+  return `${sign}$${Math.round(abs).toLocaleString()}`;
+}
+
+function formatUsdCellTokenTopPnl(n: number | null | undefined): string {
+  return `<span class="usd-tone ${usdToneClass(n)}">${formatUsdTokenTopPnlTable(n)}</span>`;
 }
 
 /** Realized PnL ÷ volume for the row (RoV %); used in top-PnL table, not the volume-by-PnL pie. */
@@ -559,6 +623,48 @@ function lerpHex(from: string, to: string, t: number): string {
   return `#${lerpChannel(A.r, B.r, u).toString(16).padStart(2, '0')}${lerpChannel(A.g, B.g, u)
     .toString(16)
     .padStart(2, '0')}${lerpChannel(A.b, B.b, u).toString(16).padStart(2, '0')}`;
+}
+
+/** `h`, `s`, `l` as in CSS: hue 0–360, saturation and lightness 0–100. */
+function hslToHex(h: number, s: number, l: number): string {
+  const H = ((h % 360) + 360) % 360;
+  const S = Math.max(0, Math.min(100, s)) / 100;
+  const L = Math.max(0, Math.min(100, l)) / 100;
+  const c = (1 - Math.abs(2 * L - 1)) * S;
+  const x = c * (1 - Math.abs(((H / 60) % 2) - 1));
+  const m = L - c / 2;
+  let rp = 0;
+  let gp = 0;
+  let bp = 0;
+  if (H < 60) {
+    rp = c;
+    gp = x;
+  } else if (H < 120) {
+    rp = x;
+    gp = c;
+  } else if (H < 180) {
+    gp = c;
+    bp = x;
+  } else if (H < 240) {
+    gp = x;
+    bp = c;
+  } else if (H < 300) {
+    rp = x;
+    bp = c;
+  } else {
+    rp = c;
+    bp = x;
+  }
+  const r = Math.round((rp + m) * 255);
+  const g = Math.round((gp + m) * 255);
+  const b = Math.round((bp + m) * 255);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+function parseHslCss(input: string): { h: number; s: number; l: number } | null {
+  const m = input.match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/);
+  if (!m) return null;
+  return { h: Number(m[1]), s: Number(m[2]), l: Number(m[3]) };
 }
 
 type WalletGainColorBounds = {
@@ -821,7 +927,7 @@ function pickLatestTradeSide(metric: WalletPnlTokenMetric): {
 type WalletPieSlice = {
   label: string;
   value: number;
-  color: string;
+  color: PieSliceSpec;
   /** Weighted avg sell/buy mult (win/lose pie legend). */
   avgGainMult?: number | null;
 };
@@ -865,7 +971,7 @@ function renderWalletPieCard(title: string, slices: WalletPieSlice[]): string {
           ? ` (${formatGainMultiplierLabel(slice.avgGainMult)} Avg)`
           : '';
       return `<div class="wallet-pnl-pie-legend-item">
-        <span class="wallet-pnl-pie-legend-swatch" style="background:${slice.color}"></span>
+        <span class="wallet-pnl-pie-legend-swatch" style="background:${pieSliceLegendBackground(slice.color)}"></span>
         <span class="wallet-pnl-pie-legend-label">${slice.label}</span>
         <span class="wallet-pnl-pie-legend-meta">${formatPctSmart(pct)} · ${formatIntFull(slice.value)}${avgSuffix}</span>
       </div>`;
@@ -1622,9 +1728,9 @@ function renderWalletPnl(
     const closedCount = tokenMetrics.filter((metric) => (metric.status || '').toLowerCase() === 'closed').length;
     const otherCount = Math.max(0, tokenMetrics.length - openCount - closedCount);
     return [
-      { label: 'Open Positions', value: openCount, color: '#64748b' },
-      { label: 'Closed Positions', value: closedCount, color: '#2563eb' },
-      { label: 'Other', value: otherCount, color: '#1d4ed8' },
+      { label: 'Open Positions', value: openCount, color: { dark: '#475569', light: '#94a3b8' } },
+      { label: 'Closed Positions', value: closedCount, color: { dark: '#1d4ed8', light: '#93c5fd' } },
+      { label: 'Other', value: otherCount, color: { dark: '#1e3a8a', light: '#60a5fa' } },
     ];
   })();
 
@@ -1632,8 +1738,8 @@ function renderWalletPnl(
     const win = Math.max(0, Math.round(Number(mergedSummary.winningTradesCount) || 0));
     const lose = Math.max(0, Math.round(Number(mergedSummary.losingTradesCount) || 0));
     return [
-      { label: 'Winning', value: win, color: '#4ade80', avgGainMult: winAvgGainMult },
-      { label: 'Losing', value: lose, color: '#a17a7a', avgGainMult: loseAvgGainMult },
+      { label: 'Winning', value: win, color: tradeScaleBarGradientPair(0), avgGainMult: winAvgGainMult },
+      { label: 'Losing', value: lose, color: VOLUME_PNL_PIE_NONPOSITIVE_FILL, avgGainMult: loseAvgGainMult },
     ];
   })();
 
@@ -1904,11 +2010,11 @@ function renderTokenTopPnlTraders(
       return `<tr>
         <td>${rank}</td>
         <td>${traderLink}</td>
-        <td style="text-align:right">${formatUsdCell(row.realizedPnlUsd)}</td>
+        <td style="text-align:right">${formatUsdCellTokenTopPnl(row.realizedPnlUsd)}</td>
         <td style="text-align:right">${formatRovPctCell(row)}</td>
-        <td style="text-align:right">${formatUsdCell(row.unrealizedPnlUsd)}</td>
-        <td style="text-align:right">${formatUsdCell(row.totalVolumeUsd)}</td>
-        <td class="token-top-pnl-24h-col" style="text-align:right">${formatUsdCell(vol24h)}</td>
+        <td style="text-align:right">${formatUsdCellTokenTopPnl(row.unrealizedPnlUsd)}</td>
+        <td style="text-align:right">${formatUsdCellTokenTopPnl(row.totalVolumeUsd)}</td>
+        <td class="token-top-pnl-24h-col" style="text-align:right">${formatUsdCellTokenTopPnl(vol24h)}</td>
         <td style="text-align:right">${formatTradesCountHeatCell(row.tradesCount, tradesMin, tradesMax)}</td>
         <td class="token-top-pnl-24h-col" style="text-align:right">${formatTradesCountHeatCell(trades24h, trades24hMin, trades24hMax)}</td>
       </tr>`;
@@ -1947,16 +2053,17 @@ function formatTradeTierValue(n: number): string {
   const num = Math.max(0, Number(n));
   if (!Number.isFinite(num)) return '0';
   if (num >= 1e9) {
-    const scaled = (num / 1e9).toFixed(2).replace(/\.?0+$/, '');
-    return `${scaled}B`;
+    return `${Math.round(num / 1e9)}B`;
   }
   if (num >= 1e6) {
-    const scaled = (num / 1e6).toFixed(2).replace(/\.?0+$/, '');
-    return `${scaled}M`;
+    return `${Math.round(num / 1e6)}M`;
   }
   if (num >= 1e3) {
-    const scaled = (num / 1e3).toFixed(2).replace(/\.?0+$/, '');
-    return `${scaled}K`;
+    const k = Math.round(num / 1e3);
+    if (k >= 1000) {
+      return `${Math.round(num / 1e6)}M`;
+    }
+    return `${k}K`;
   }
   return Math.round(num).toLocaleString();
 }
@@ -1966,25 +2073,22 @@ function formatLegendTradeCount(n: number): string {
   return formatTradeTierValue(Math.round(Math.max(0, n)));
 }
 
-/** Donut hub second line: compact K with decimals only when total ≤ 9.99K. */
+/** Donut hub second line: compact K / M / B with no fractional digits. */
 function formatTradeTierCenterTradesSubtitle(totalTrades: number): string {
   const num = Math.round(Math.max(0, totalTrades));
   if (!Number.isFinite(num) || num === 0) return '0 Trades';
   if (num >= 1e9) {
-    const scaled = (num / 1e9).toFixed(2).replace(/\.?0+$/, '');
-    return `${scaled}B Trades`;
+    return `${Math.round(num / 1e9)}B Trades`;
   }
   if (num >= 1e6) {
-    const scaled = (num / 1e6).toFixed(2).replace(/\.?0+$/, '');
-    return `${scaled}M Trades`;
+    return `${Math.round(num / 1e6)}M Trades`;
   }
   if (num >= 1e3) {
-    if (num > 9990) {
-      const k = Math.round(num / 1000);
-      return `${k.toLocaleString()}K Trades`;
+    const k = Math.round(num / 1e3);
+    if (k >= 1000) {
+      return `${Math.round(num / 1e6)}M Trades`;
     }
-    const scaled = (num / 1e3).toFixed(2).replace(/\.?0+$/, '');
-    return `${scaled}K Trades`;
+    return `${k}K Trades`;
   }
   return `${num.toLocaleString()} Trades`;
 }
@@ -2013,14 +2117,16 @@ function setTradeTierDashboardMeta(titleResolution: string, resolutionLabel: str
   const lim = getTokenTopPnlLimitDisplay();
   tokenTopTradesByProfitTitle.textContent = `Profitable traders by activity (Last ${titleResolution})`;
   if (tokenTradeTierLede) {
-    tokenTradeTierLede.textContent = `Trade-count tiers for the top ${lim} fetch (${resolutionLabel}); positive RoV only.`;
+    tokenTradeTierLede.textContent = `Top ${lim} (${resolutionLabel}). Profitable-only trade-share; full-list tiers.`;
+  }
+  if (tokenVolumePnlLede) {
+    tokenVolumePnlLede.textContent = `Top ${lim} (${resolutionLabel}). Dollar volume split by realized PnL band.`;
   }
   if (tokenTradeTierFooterMethodology) {
-    tokenTradeTierFooterMethodology.textContent =
-      'Same band edges as the trades column; slice angle ∝ each trader’s tradesCount (tiers folded when needed).';
+    tokenTradeTierFooterMethodology.textContent = 'Slice ∝ trades per tier; edges align with trade-count bars.';
   }
   if (tokenTradeTierFooterScope) {
-    tokenTradeTierFooterScope.textContent = `Vybe token top‑PnL for this mint: top ${lim} at ${resolutionLabel}; only RoV‑positive wallets, same fetch and filters as the charts above.`;
+    tokenTradeTierFooterScope.textContent = `Top ${lim} (${resolutionLabel}). Trades pie & bars here; volume card below.`;
   }
   if (tokenSupplyCardDescPnl) {
     tokenSupplyCardDescPnl.textContent = `Traders per realized PnL band (top ${lim}, ${resolutionLabel}).`;
@@ -2031,64 +2137,143 @@ function setTradeTierDashboardMeta(titleResolution: string, resolutionLabel: str
   if (tokenTradeTierTimeframe) {
     tokenTradeTierTimeframe.textContent = resolutionLabel;
   }
+  if (tokenVolumePnlFooterMethodology) {
+    tokenVolumePnlFooterMethodology.textContent = 'Listed volume by merged PnL band; slice ∝ band USD share.';
+  }
+  if (tokenVolumePnlFooterScope) {
+    tokenVolumePnlFooterScope.textContent = `Top ${lim} (${resolutionLabel}). Volume + PnL bars here; trade-share above.`;
+  }
+  if (tokenVolumePnlTimeframe) {
+    tokenVolumePnlTimeframe.textContent = resolutionLabel;
+  }
 }
 
 function syncTokenSupplySectionHeadingsForResolution(): void {
   const resolutionLabel = formatResolutionSectionLabel(tokenTopPnlResolution.value);
   const titleResolution = formatResolutionForTitle(resolutionLabel);
   tokenSupplySelectedTitle.textContent = resolutionLabel;
-  tokenTopVolumeSelectedTitle.textContent = `Volume by PnL amount (Last ${titleResolution})`;
+  tokenTopVolumeSelectedTitle.textContent = `Profitable traders by volume (Last ${titleResolution})`;
   setTradeTierDashboardMeta(titleResolution, resolutionLabel);
   tokenPnlSelectedTitle.textContent = `PnL distribution (Last ${titleResolution})`;
   tokenTradesCountSelectedTitle.textContent = `Trades count distribution (Last ${titleResolution})`;
 }
 
-function renderPieLegendRow(label: string, percentage: number, volume: string, color: string): string {
-  return `<div class="token-supply-legend-item">
-    <span class="token-supply-legend-swatch" style="background:${color}"></span>
-    <div class="token-supply-legend-content">
-      <div class="token-supply-legend-label">${label}</div>
-      <ul class="token-supply-legend-sublist">
-        <li><span class="token-supply-legend-pct">${formatPctSmart(percentage)}</span> <span class="token-supply-legend-token">(</span><span class="token-supply-legend-usd">${volume}</span><span class="token-supply-legend-token">)</span></li>
-      </ul>
-    </div>
-  </div>`;
-}
-
-/** Trade-tier pie: dashboard-style tier cards (share, PnL, realized, traders, total trades). */
-function renderPieLegendTradeTierRow(
+/**
+ * Volume-by-PnL donut legend: share → realized → trades (band only) → traders → slice volume / total vol USD.
+ */
+function renderPieLegendVolumePnlCard(
   label: string,
   slicePct: number,
-  avgPnlPct: number,
   realizedUsd: number,
   traderCount: number,
-  tierTrades: number,
-  totalTrades: number,
-  color: string
+  bandTrades: number,
+  volumeUsd: number,
+  totalVolUsdAll: number,
+  fill: PieSliceSpec
 ): string {
-  const tierStr = formatLegendTradeCount(tierTrades);
-  const totalStr = formatLegendTradeCount(totalTrades);
+  const accent = pieSliceAccentSolid(fill);
+  const swatchBg = pieSliceLegendBackground(fill);
+  const tradesCompact = formatLegendTradeCount(bandTrades);
+  const tradesWord = bandTrades === 1 ? ' trade' : ' trades';
+  const volSlice = formatUsdFull(volumeUsd);
+  const volTotal = formatUsdFull(totalVolUsdAll);
   const title = escapeHtmlText(label);
   return `<div class="token-supply-legend-item token-supply-legend-item--tier-dashboard">
-    <article class="token-tier-card" style="--tier-accent:${color}">
+    <article class="token-tier-card" style="--tier-accent:${accent}">
       <h4 class="token-tier-card__title">${title}</h4>
       <ul class="token-tier-card__metrics">
         <li class="token-tier-metric">
-          <span class="token-tier-metric__ico token-tier-metric__ico--share-swatch" style="--tier-swatch:${color}" aria-hidden="true"></span>
+          <span class="token-tier-metric__ico token-tier-metric__ico--share-swatch" style="--tier-swatch:${swatchBg}" aria-hidden="true"></span>
           <div class="token-tier-metric__body">
             <span class="token-tier-metric__slice-pct">${formatPctSmart(slicePct)}</span><span class="token-tier-metric__muted"> share</span>
-          </div>
-        </li>
-        <li class="token-tier-metric">
-          <span class="token-tier-metric__ico token-tier-metric__ico--pnl" aria-hidden="true">%</span>
-          <div class="token-tier-metric__body">
-            <span class="token-tier-metric__muted">Avg PnL </span><span class="token-tier-metric__accent-pnl">${formatPctSmart(avgPnlPct)}</span>
           </div>
         </li>
         <li class="token-tier-metric">
           <span class="token-tier-metric__ico token-tier-metric__ico--usd" aria-hidden="true">$</span>
           <div class="token-tier-metric__body">
             <span class="token-tier-metric__accent-usd">${formatUsdFull(realizedUsd)}</span><span class="token-tier-metric__muted"> realized</span>
+          </div>
+        </li>
+        <li class="token-tier-metric">
+          <span class="token-tier-metric__ico token-tier-metric__ico--layers" aria-hidden="true">${TIER_LEGEND_SVG_STACK}</span>
+          <div class="token-tier-metric__body">
+            <span class="token-tier-metric__vol-pnl-trades-val">${tradesCompact}</span><span class="token-tier-metric__muted">${tradesWord}</span>
+          </div>
+        </li>
+        <li class="token-tier-metric">
+          <span class="token-tier-metric__ico token-tier-metric__ico--people" aria-hidden="true">${TIER_LEGEND_SVG_USER}</span>
+          <div class="token-tier-metric__body">
+            <span class="token-tier-metric__emph">${Math.max(0, Math.round(traderCount)).toLocaleString()}</span><span class="token-tier-metric__muted"> traders</span>
+          </div>
+        </li>
+        <li class="token-tier-metric token-tier-metric--total">
+          <span class="token-tier-metric__ico token-tier-metric__ico--volume" aria-hidden="true">${TIER_LEGEND_SVG_VOLUME}</span>
+          <div class="token-tier-metric__body token-tier-metric__body--stack">
+            <span class="token-tier-metric__label">Total volume</span>
+            <span class="token-tier-metric__ratio token-tier-metric__ratio--vol-pnl-split">
+              <span class="token-tier-metric__vol-pnl-slice-val">${volSlice}</span><span class="token-tier-metric__vol-pnl-totalvol-suffix"> / ${volTotal}</span>
+            </span>
+          </div>
+        </li>
+      </ul>
+    </article>
+  </div>`;
+}
+
+function renderPieLegendVolumePnlCardPlaceholder(label: string, fill: PieSliceSpec): string {
+  const dash = '—';
+  const accent = pieSliceAccentSolid(fill);
+  const swatchBg = pieSliceLegendBackground(fill);
+  return `<div class="token-supply-legend-item token-supply-legend-item--tier-dashboard">
+    <article class="token-tier-card token-tier-card--placeholder" style="--tier-accent:${accent}">
+      <h4 class="token-tier-card__title">${escapeHtmlText(label)}</h4>
+      <ul class="token-tier-card__metrics">
+        <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--share-swatch" style="--tier-swatch:${swatchBg}" aria-hidden="true"></span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
+        <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--usd" aria-hidden="true">$</span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
+        <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--layers" aria-hidden="true">${TIER_LEGEND_SVG_STACK}</span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
+        <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--people" aria-hidden="true">${TIER_LEGEND_SVG_USER}</span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
+        <li class="token-tier-metric token-tier-metric--total"><span class="token-tier-metric__ico token-tier-metric__ico--volume" aria-hidden="true">${TIER_LEGEND_SVG_VOLUME}</span><div class="token-tier-metric__body token-tier-metric__body--stack"><span class="token-tier-metric__label">Total volume</span><span class="token-tier-metric__ratio token-tier-metric__ratio--vol-pnl-split"><span class="token-tier-metric__vol-pnl-slice-val">${dash}</span><span class="token-tier-metric__vol-pnl-totalvol-suffix"> / ${dash}</span></span></div></li>
+      </ul>
+    </article>
+  </div>`;
+}
+
+/** Trade-tier pie: dashboard-style tier cards (share, realized, volume, traders, total trades). */
+function renderPieLegendTradeTierRow(
+  label: string,
+  slicePct: number,
+  realizedUsd: number,
+  volumeUsd: number,
+  traderCount: number,
+  tierTrades: number,
+  totalTrades: number,
+  fill: PieSliceSpec
+): string {
+  const tierStr = formatLegendTradeCount(tierTrades);
+  const totalStr = formatLegendTradeCount(totalTrades);
+  const title = escapeHtmlText(label);
+  const accent = pieSliceAccentSolid(fill);
+  const swatchBg = pieSliceLegendBackground(fill);
+  return `<div class="token-supply-legend-item token-supply-legend-item--tier-dashboard">
+    <article class="token-tier-card" style="--tier-accent:${accent}">
+      <h4 class="token-tier-card__title">${title}</h4>
+      <ul class="token-tier-card__metrics">
+        <li class="token-tier-metric">
+          <span class="token-tier-metric__ico token-tier-metric__ico--share-swatch" style="--tier-swatch:${swatchBg}" aria-hidden="true"></span>
+          <div class="token-tier-metric__body">
+            <span class="token-tier-metric__slice-pct">${formatPctSmart(slicePct)}</span><span class="token-tier-metric__muted"> share</span>
+          </div>
+        </li>
+        <li class="token-tier-metric">
+          <span class="token-tier-metric__ico token-tier-metric__ico--usd" aria-hidden="true">$</span>
+          <div class="token-tier-metric__body">
+            <span class="token-tier-metric__accent-usd">${formatUsdFull(realizedUsd)}</span><span class="token-tier-metric__muted"> realized</span>
+          </div>
+        </li>
+        <li class="token-tier-metric">
+          <span class="token-tier-metric__ico token-tier-metric__ico--volume" aria-hidden="true">${TIER_LEGEND_SVG_VOLUME}</span>
+          <div class="token-tier-metric__body">
+            <span class="token-tier-metric__accent-volume">${formatUsdFull(volumeUsd)}</span><span class="token-tier-metric__muted"> volume</span>
           </div>
         </li>
         <li class="token-tier-metric">
@@ -2101,7 +2286,9 @@ function renderPieLegendTradeTierRow(
           <span class="token-tier-metric__ico token-tier-metric__ico--layers" aria-hidden="true">${TIER_LEGEND_SVG_STACK}</span>
           <div class="token-tier-metric__body token-tier-metric__body--stack">
             <span class="token-tier-metric__label">Total trades</span>
-            <span class="token-tier-metric__ratio">${tierStr} / ${totalStr}</span>
+            <span class="token-tier-metric__ratio token-tier-metric__ratio--vol-pnl-split">
+              <span class="token-tier-metric__vol-pnl-slice-val">${tierStr}</span><span class="token-tier-metric__vol-pnl-totalvol-suffix"> / ${totalStr}</span>
+            </span>
           </div>
         </li>
       </ul>
@@ -2109,76 +2296,56 @@ function renderPieLegendTradeTierRow(
   </div>`;
 }
 
-function renderTierPieLegendPlaceholder(color: string): string {
+function renderTierPieLegendPlaceholder(fill: PieSliceSpec): string {
   const dash = '—';
+  const accent = pieSliceAccentSolid(fill);
+  const swatchBg = pieSliceLegendBackground(fill);
   return `<div class="token-supply-legend-item token-supply-legend-item--tier-dashboard">
-    <article class="token-tier-card token-tier-card--placeholder" style="--tier-accent:${color}">
+    <article class="token-tier-card token-tier-card--placeholder" style="--tier-accent:${accent}">
       <h4 class="token-tier-card__title">${dash}</h4>
       <ul class="token-tier-card__metrics">
-        <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--share-swatch" style="--tier-swatch:${color}" aria-hidden="true"></span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
-        <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--pnl" aria-hidden="true">%</span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
+        <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--share-swatch" style="--tier-swatch:${swatchBg}" aria-hidden="true"></span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
         <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--usd" aria-hidden="true">$</span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
+        <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--volume" aria-hidden="true">${TIER_LEGEND_SVG_VOLUME}</span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
         <li class="token-tier-metric"><span class="token-tier-metric__ico token-tier-metric__ico--people" aria-hidden="true">${TIER_LEGEND_SVG_USER}</span><div class="token-tier-metric__body"><span class="token-tier-metric__muted">${dash}</span></div></li>
-        <li class="token-tier-metric token-tier-metric--total"><span class="token-tier-metric__ico token-tier-metric__ico--layers" aria-hidden="true">${TIER_LEGEND_SVG_STACK}</span><div class="token-tier-metric__body token-tier-metric__body--stack"><span class="token-tier-metric__label">Total trades</span><span class="token-tier-metric__ratio">${dash}</span></div></li>
+        <li class="token-tier-metric token-tier-metric--total"><span class="token-tier-metric__ico token-tier-metric__ico--layers" aria-hidden="true">${TIER_LEGEND_SVG_STACK}</span><div class="token-tier-metric__body token-tier-metric__body--stack"><span class="token-tier-metric__label">Total trades</span><span class="token-tier-metric__ratio token-tier-metric__ratio--vol-pnl-split"><span class="token-tier-metric__vol-pnl-slice-val">${dash}</span><span class="token-tier-metric__vol-pnl-totalvol-suffix"> / ${dash}</span></span></div></li>
       </ul>
     </article>
   </div>`;
 }
 
-function renderPieLegendRowPlaceholder(label: string, color: string): string {
-  const dash = '—';
-  return `<div class="token-supply-legend-item">
-    <span class="token-supply-legend-swatch" style="background:${color}"></span>
-    <div class="token-supply-legend-content">
-      <div class="token-supply-legend-label">${label}</div>
-      <ul class="token-supply-legend-sublist">
-        <li><span class="token-supply-legend-pct">${dash}</span> <span class="token-supply-legend-token">(${dash} • </span><span class="token-supply-legend-usd">${dash}</span><span class="token-supply-legend-token">)</span></li>
-      </ul>
-    </div>
-  </div>`;
-}
-
-function buildTokenPnlBarPlaceholderRow(
-  fillClass: 'positive' | 'negative' | 'neutral' | 'trade-scale',
-  tradeGradT = 0.5
-): string {
-  const dash = '—';
-  const style =
-    fillClass === 'trade-scale'
-      ? `width:0%; --trade-grad-t:${tradeGradT.toFixed(4)};`
-      : 'width:0%;';
-  return `<div class="token-pnl-bar-row">
-    <div class="token-pnl-bar-label">${dash}</div>
-    <div class="token-pnl-bar-track">
-      <div class="token-pnl-bar-fill token-pnl-bar-fill--${fillClass}" style="${style}"></div>
-      <span class="token-pnl-bar-count">${dash}</span>
-    </div>
-  </div>`;
-}
-
 function applyTokenModeChartsPlaceholder(): void {
   tokenSupplyPieTotal.style.background = buildPieGradientWithGaps(
-    new Array(TOKEN_VOLUME_BY_PNL_USD_BANDS.length).fill(0),
-    TOKEN_VOLUME_BY_PNL_USD_BANDS.map((b) => b.color)
+    new Array(VOLUME_PNL_PIE_MERGED_USD_BANDS.length).fill(0),
+    [...VOLUME_PNL_PIE_MERGED_SLICE_FILLS]
   );
-  tokenSupplyLegendTotal.innerHTML = TOKEN_VOLUME_BY_PNL_USD_BANDS.map((b) =>
-    renderPieLegendRowPlaceholder(b.label, b.color)
+  tokenSupplyLegendTotal.innerHTML = VOLUME_PNL_PIE_MERGED_USD_BANDS.map((b, i) =>
+    renderPieLegendVolumePnlCardPlaceholder(b.label, VOLUME_PNL_PIE_MERGED_SLICE_FILLS[i] ?? '#27272a')
   ).join('');
   clearDonutPieOverlays(tokenSupplyPieTotal);
   mountDonutPieCenterHub(tokenSupplyPieTotal, { mock: true, hubSubline: '—' });
 
   tokenSupplyPieTradesCount.style.background = buildPieGradientWithGaps(
     new Array(TRADE_TIER_PIE_SEGMENT_COUNT).fill(0),
-    TRADE_TIER_PIE_COLORS.slice(0, TRADE_TIER_PIE_SEGMENT_COUNT)
+    [...TRADE_TIER_PIE_SLICE_FILLS]
   );
   clearDonutPieOverlays(tokenSupplyPieTradesCount);
   mountDonutPieCenterHub(tokenSupplyPieTradesCount, { mock: true, hubSubline: '—' });
-  tokenSupplyLegendTradesCount.innerHTML = TRADE_TIER_PIE_COLORS.slice(0, TRADE_TIER_PIE_SEGMENT_COUNT)
-    .map((color) => renderTierPieLegendPlaceholder(color))
-    .join('');
+  tokenSupplyLegendTradesCount.innerHTML = TRADE_TIER_PIE_SLICE_FILLS.map((fill) => renderTierPieLegendPlaceholder(fill)).join('');
   if (tokenTradeTierInsightText) tokenTradeTierInsightText.textContent = '—';
+  if (tokenVolumePnlInsightText) tokenVolumePnlInsightText.textContent = '—';
 
-  tokenPnlBarsTotal.innerHTML = Array.from({ length: 8 }, () => buildTokenPnlBarPlaceholderRow('neutral')).join('');
+  tokenPnlBarsTotal.innerHTML = Array.from({ length: 8 }, (_, j) => {
+    const t = j / 7;
+    const dash = '—';
+    return `<div class="token-trades-vertical-bar-item">
+        <div class="token-trades-vertical-track">
+          <div class="token-trades-vertical-fill token-pnl-bar-fill--trade-scale" style="height:0%; --trade-grad-t:${t.toFixed(4)};"></div>
+          <span class="token-trades-vertical-count">${dash}</span>
+        </div>
+        <div class="token-trades-vertical-label">${dash}</div>
+      </div>`;
+  }).join('');
 
   syncTokenSupplySectionHeadingsForResolution();
 
@@ -2256,14 +2423,40 @@ function buildCountTierEdges(maxVal: number): number[] {
 /** Gap wedges between slices; must stay in sync with {@link tradeTierPieSliceMidAnglesDeg}. */
 const PIE_CONIC_GAP_DEG = 1.2;
 
+function pieSliceLegendBackground(spec: PieSliceSpec): string {
+  if (typeof spec === 'string') return spec;
+  return `linear-gradient(90deg, ${spec.dark}, ${spec.light})`;
+}
+
+/** Solid stop for `border-left` / `--tier-accent` (gradients are invalid there). */
+function pieSliceAccentSolid(spec: PieSliceSpec): string {
+  if (typeof spec === 'string') return spec;
+  return spec.dark;
+}
+
+function pieSliceSpecToLabelHex(spec: PieSliceSpec): string {
+  if (typeof spec === 'string') {
+    return spec.startsWith('#') ? spec : hslToHex(0, 0, 55);
+  }
+  const a = parseHslCss(spec.dark);
+  const b = parseHslCss(spec.light);
+  if (a && b) {
+    return hslToHex(a.h, (a.s + b.s) / 2, (a.l + b.l) / 2);
+  }
+  if (spec.dark.startsWith('#') && spec.light.startsWith('#')) {
+    return lerpHex(spec.dark, spec.light, 0.5);
+  }
+  return '#64748b';
+}
+
 function buildPieGradientWithGaps(
   slices: number[],
-  colors: string[],
+  colors: PieSliceSpec[],
   gapColor = '#0a0a0d',
   gapDeg = PIE_CONIC_GAP_DEG
 ): string {
   const entries = slices
-    .map((value, i) => ({ value: Math.max(0, value), color: colors[i] ?? '#27272a' }))
+    .map((value, i) => ({ value: Math.max(0, value), fill: colors[i] ?? '#27272a' }))
     .filter((entry) => entry.value > 0);
 
   if (entries.length === 0) {
@@ -2271,7 +2464,11 @@ function buildPieGradientWithGaps(
   }
 
   if (entries.length === 1) {
-    return `conic-gradient(${entries[0].color} 0deg 360deg)`;
+    const spec = entries[0].fill;
+    if (typeof spec === 'string') {
+      return `conic-gradient(${spec} 0deg 360deg)`;
+    }
+    return `conic-gradient(${spec.dark} 0deg, ${spec.light} 360deg)`;
   }
 
   const total = entries.reduce((sum, entry) => sum + entry.value, 0);
@@ -2289,7 +2486,12 @@ function buildPieGradientWithGaps(
     const sliceDeg = usableDeg * (entry.value / total);
     const sliceStart = cursor;
     const sliceEnd = sliceStart + sliceDeg;
-    stops.push(`${entry.color} ${sliceStart.toFixed(3)}deg ${sliceEnd.toFixed(3)}deg`);
+    const spec = entry.fill;
+    if (typeof spec === 'string') {
+      stops.push(`${spec} ${sliceStart.toFixed(3)}deg ${sliceEnd.toFixed(3)}deg`);
+    } else {
+      stops.push(`${spec.dark} ${sliceStart.toFixed(3)}deg, ${spec.light} ${sliceEnd.toFixed(3)}deg`);
+    }
     cursor = sliceEnd;
   });
 
@@ -2374,30 +2576,41 @@ function mountDonutPieCenterHub(pieEl: HTMLElement, options: { mock: boolean; hu
  * Raise this to spread callouts wider; lower to let labels sit closer (may overlap on tiny slices).
  * `TIER_PIE_LABEL_MAX_TANGENT_DEG` must stay large enough to reach this target at the 0°/360° wrap.
  */
-const TIER_PIE_OUTSIDE_LABEL_MIN_ANGULAR_SEP_DEG = 20;
+const TIER_PIE_OUTSIDE_LABEL_MIN_ANGULAR_SEP_DEG = 28;
 
 const TIER_PIE_LABEL_MIN_SEP_DEG = TIER_PIE_OUTSIDE_LABEL_MIN_ANGULAR_SEP_DEG;
 const TIER_PIE_LABEL_TIGHT_PAIR_MIN_DEG = TIER_PIE_OUTSIDE_LABEL_MIN_ANGULAR_SEP_DEG;
-const TIER_PIE_LABEL_MAX_ANGLE_OFF = 11;
-const TIER_PIE_LABEL_MAX_TANGENT_DEG = 26;
-const TIER_PIE_LABEL_R_STACK = 5.25;
+const TIER_PIE_LABEL_MAX_ANGLE_OFF = 15;
+const TIER_PIE_LABEL_MAX_TANGENT_DEG = 44;
+const TIER_PIE_LABEL_R_STACK = 7.25;
 /** Donut hole inset 27% → inner radius ≈ 23 in viewBox-50 units; outer rim ~49.25. */
 const TIER_PIE_R_INNER = 23;
 const TIER_PIE_R_OUTER = 49.25;
 const TIER_PIE_R_LABEL_INSIDE = (TIER_PIE_R_INNER + TIER_PIE_R_OUTER) / 2;
 const TIER_PIE_INSIDE_FONT_UNITS = 4.35;
+/** Below this angular width, labels always use outside callouts. */
 const TIER_PIE_INSIDE_MIN_SLICE_DEG = 10;
-const TIER_PIE_INSIDE_ARC_PAD = 1.18;
+/**
+ * Below this share of the donut (% points), labels always use outside callouts so text
+ * does not crowd thin slices (geometric fit alone may still allow inside for ~4–5%).
+ */
+const TIER_PIE_INSIDE_MIN_PCT = 5;
+/**
+ * Inside labels only if arc length at label radius fits estimated text width × pad.
+ * Lower pad → more labels inside (narrow slices like ~6%); higher → safer from clipping.
+ */
+const TIER_PIE_INSIDE_ARC_PAD = 0.84;
 
 type TierPieLabelCand = { mid: number; pct: number; i: number };
 
 function tradeTierEstimatePctLabelWidth(pct: number, fontUnits: number): number {
   const len = `${pct.toFixed(2)}%`.length;
-  return len * fontUnits * 0.54;
+  return len * fontUnits * 0.52;
 }
 
 function tradeTierPieLabelFitsInside(spanDeg: number | null, pct: number): boolean {
   if (spanDeg == null || spanDeg < TIER_PIE_INSIDE_MIN_SLICE_DEG) return false;
+  if (pct < TIER_PIE_INSIDE_MIN_PCT) return false;
   const arcLen = TIER_PIE_R_LABEL_INSIDE * ((spanDeg * Math.PI) / 180);
   const w = tradeTierEstimatePctLabelWidth(pct, TIER_PIE_INSIDE_FONT_UNITS);
   return arcLen >= w * TIER_PIE_INSIDE_ARC_PAD;
@@ -2436,7 +2649,7 @@ function computeTradeTierPieLabelLayout(cands: TierPieLabelCand[]): {
 
   if (n <= 1) return { angleOff, tangentialDeg, radialBoost };
 
-  for (let pass = 0; pass < 18; pass++) {
+  for (let pass = 0; pass < 32; pass++) {
     const ord = [...cands].sort((a, b) => eff(a) - eff(b));
     let changed = false;
     for (let k = 0; k < n; k++) {
@@ -2447,7 +2660,7 @@ function computeTradeTierPieLabelLayout(cands: TierPieLabelCand[]): {
       const gap = eb - ea;
       if (gap >= TIER_PIE_LABEL_MIN_SEP_DEG) continue;
       const deficit = TIER_PIE_LABEL_MIN_SEP_DEG - gap;
-      const step = Math.min(deficit * 0.52, 4.5);
+      const step = Math.min(deficit * 0.52, 5.5);
       angleOff.set(a.i, clampNum((angleOff.get(a.i) ?? 0) - step, -TIER_PIE_LABEL_MAX_ANGLE_OFF, TIER_PIE_LABEL_MAX_ANGLE_OFF));
       angleOff.set(b.i, clampNum((angleOff.get(b.i) ?? 0) + step, -TIER_PIE_LABEL_MAX_ANGLE_OFF, TIER_PIE_LABEL_MAX_ANGLE_OFF));
       changed = true;
@@ -2455,7 +2668,7 @@ function computeTradeTierPieLabelLayout(cands: TierPieLabelCand[]): {
     if (!changed) break;
   }
 
-  for (let pass = 0; pass < 20; pass++) {
+  for (let pass = 0; pass < 36; pass++) {
     const ord = [...cands].sort((a, b) => lab(a) - lab(b));
     let changed = false;
     for (let k = 0; k < n; k++) {
@@ -2466,7 +2679,7 @@ function computeTradeTierPieLabelLayout(cands: TierPieLabelCand[]): {
       const gap = lb - la;
       if (gap >= TIER_PIE_LABEL_MIN_SEP_DEG) continue;
       const deficit = TIER_PIE_LABEL_MIN_SEP_DEG - gap;
-      const half = Math.min(deficit * 0.55, 7);
+      const half = Math.min(deficit * 0.55, 9);
       tangentialDeg.set(
         a.i,
         clampNum((tangentialDeg.get(a.i) ?? 0) - half, -TIER_PIE_LABEL_MAX_TANGENT_DEG, TIER_PIE_LABEL_MAX_TANGENT_DEG)
@@ -2496,7 +2709,7 @@ function computeTradeTierPieLabelLayout(cands: TierPieLabelCand[]): {
     if (tightGap < TIER_PIE_LABEL_TIGHT_PAIR_MIN_DEG) {
       const a = ord[tightK];
       const b = ord[(tightK + 1) % n];
-      const push = (TIER_PIE_LABEL_TIGHT_PAIR_MIN_DEG - tightGap) * 0.45 + 7;
+      const push = (TIER_PIE_LABEL_TIGHT_PAIR_MIN_DEG - tightGap) * 0.45 + 12;
       tangentialDeg.set(
         a.i,
         clampNum((tangentialDeg.get(a.i) ?? 0) - push, -TIER_PIE_LABEL_MAX_TANGENT_DEG, TIER_PIE_LABEL_MAX_TANGENT_DEG)
@@ -2516,7 +2729,9 @@ function computeTradeTierPieLabelLayout(cands: TierPieLabelCand[]): {
     if (e - prev < TIER_PIE_LABEL_MIN_SEP_DEG * 0.55) stack += 1;
     else stack = 0;
     prev = e;
-    radialBoost.set(item.i, stack * TIER_PIE_LABEL_R_STACK);
+    let boost = stack * TIER_PIE_LABEL_R_STACK;
+    if (item.pct < 8) boost += TIER_PIE_LABEL_R_STACK * 0.55;
+    radialBoost.set(item.i, boost);
   }
   if (n >= 2) {
     const wrapGap = lab(ord[0]) + 360 - lab(ord[n - 1]);
@@ -2532,14 +2747,14 @@ function computeTradeTierPieLabelLayout(cands: TierPieLabelCand[]): {
 }
 
 /** Slice labels: inside the ring when arc fits the string; otherwise outside with leaders. */
-function mountDonutPieSliceLabelOverlay(pieEl: HTMLElement, slicePcts: number[], sliceColors: string[]): void {
+function mountDonutPieSliceLabelOverlay(pieEl: HTMLElement, slicePcts: number[], sliceSpecs: PieSliceSpec[]): void {
   clearDonutPieOverlays(pieEl);
   const mids = tradeTierPieSliceMidAnglesDeg(slicePcts, PIE_CONIC_GAP_DEG);
   const spans = tradeTierPieSliceSpanDeg(slicePcts, PIE_CONIC_GAP_DEG);
   const cx = 50;
   const cy = 50;
   const rEdge = TIER_PIE_R_OUTER;
-  const rTextBase = 58.5;
+  const rTextBase = 61;
   const lineEndInset = 5.2;
 
   const candidates: TierPieLabelCand[] = [];
@@ -2565,7 +2780,7 @@ function mountDonutPieSliceLabelOverlay(pieEl: HTMLElement, slicePcts: number[],
   svg.setAttribute('aria-hidden', 'true');
 
   for (const { mid, pct, i } of candidates) {
-    const color = sliceColors[i] ?? '#38bdf8';
+    const color = pieSliceSpecToLabelHex(sliceSpecs[i] ?? '#38bdf8');
 
     if (inside.has(i)) {
       const rad = (mid * Math.PI) / 180;
@@ -2622,30 +2837,18 @@ function mountDonutPieSliceLabelOverlay(pieEl: HTMLElement, slicePcts: number[],
 function mountDonutPieOverlays(
   pieEl: HTMLElement,
   slicePcts: number[],
-  sliceColors: string[],
+  sliceSpecs: PieSliceSpec[],
   hub: { mock: boolean; hubSubline: string }
 ): void {
-  mountDonutPieSliceLabelOverlay(pieEl, slicePcts, sliceColors);
+  mountDonutPieSliceLabelOverlay(pieEl, slicePcts, sliceSpecs);
   mountDonutPieCenterHub(pieEl, hub);
 }
-
-/** Realized PnL (USD) bands for the token PnL bar chart: (lower, upper], high → low; top row is (100, ∞). */
-const CANONICAL_POSITIVE_PNL_DIST_USD_BANDS: readonly { label: string; lower: number; upper: number }[] = [
-  { label: '$100 to $1,000', lower: 100, upper: Number.POSITIVE_INFINITY },
-  { label: '$10 to $100', lower: 10, upper: 100 },
-  { label: '$1 to $10', lower: 1, upper: 10 },
-  { label: '$0.50 to $1', lower: 0.5, upper: 1 },
-  { label: '$0.10 to $0.50', lower: 0.1, upper: 0.5 },
-  { label: '$0.05 to $0.10', lower: 0.05, upper: 0.1 },
-  { label: '$0.02 to $0.05', lower: 0.02, upper: 0.05 },
-  { label: '> $0 to $0.02', lower: 0, upper: 0.02 },
-];
 
 function renderPnlDistributionBars(
   rows: TokenTopPnlTraderRow[],
   topLimit: number,
   target: HTMLElement,
-  _maxGroups: number
+  _bandCount: number
 ): void {
   const limitN = Math.max(1, topLimit);
   const values = rows
@@ -2659,21 +2862,25 @@ function renderPnlDistributionBars(
   }
 
   const positiveValues = values.filter((pnl) => pnl > 0);
-  const groups = CANONICAL_POSITIVE_PNL_DIST_USD_BANDS.map((band) => ({
+  const n = CANONICAL_POSITIVE_PNL_DIST_USD_BANDS.length;
+  const groups = CANONICAL_POSITIVE_PNL_DIST_USD_BANDS.map((band, i) => ({
     label: band.label,
     count: positiveValues.filter((pnl) => pnl > band.lower && pnl <= band.upper).length,
+    gradientT: n <= 1 ? 1 : 1 - i / (n - 1),
   }));
 
-  const maxCount = Math.max(1, ...groups.map((g) => g.count));
-  target.innerHTML = groups
+  const leftToRightGroups = [...groups].reverse();
+  const maxCount = Math.max(1, ...leftToRightGroups.map((g) => g.count));
+  target.innerHTML = leftToRightGroups
     .map((group) => {
-      const widthPct = (group.count / maxCount) * 100;
-      return `<div class="token-pnl-bar-row">
-        <div class="token-pnl-bar-label">${group.label}</div>
-        <div class="token-pnl-bar-track">
-          <div class="token-pnl-bar-fill token-pnl-bar-fill--positive" style="width:${widthPct.toFixed(2)}%"></div>
-          <span class="token-pnl-bar-count">${group.count}</span>
+      const heightPct = (group.count / maxCount) * 100;
+      const t = Math.max(0, Math.min(1, group.gradientT));
+      return `<div class="token-trades-vertical-bar-item">
+        <div class="token-trades-vertical-track">
+          <div class="token-trades-vertical-fill token-pnl-bar-fill--trade-scale" style="height:${heightPct.toFixed(2)}%; --trade-grad-t:${t.toFixed(4)};"></div>
+          <span class="token-trades-vertical-count">${group.count}</span>
         </div>
+        <div class="token-trades-vertical-label">${group.label}</div>
       </div>`;
     })
     .join('');
@@ -2974,7 +3181,7 @@ function tradeTierIndexForTraderCount(tRaw: number, def: TradeTierDefinitions): 
 
 /**
  * Pie slice angle ∝ sum of each trader’s `tradesCount` in that tier (share of total trades, not share of traders).
- * Only rows with positive RoV % are included. Legend lines 3–4 are traders / realized in that tier.
+ * Only rows with positive realized PnL (requires volume on the row). Legend cards show realized PnL, volume, traders, and trades per tier.
  */
 function renderProfitableTradersTradeTierPie(
   rows: TokenTopPnlTraderRow[],
@@ -3012,9 +3219,9 @@ function renderProfitableTradersTradeTierPie(
 
   const slotCount = tierDef.tiers.length + (tierDef.zeroCount > 0 ? 1 : 0);
   const weightByTier = new Array(slotCount).fill(0);
-  const roiSumByTier = new Array(slotCount).fill(0);
   const roiCountByTier = new Array(slotCount).fill(0);
   const realizedSumByTier = new Array(slotCount).fill(0);
+  const volumeSumByTier = new Array(slotCount).fill(0);
 
   for (const row of profitable) {
     const roi = traderRoiPercentFromRow(row);
@@ -3025,9 +3232,9 @@ function renderProfitableTradersTradeTierPie(
     if (idx == null) continue;
     const w = Math.max(0, Math.round(trades));
     weightByTier[idx] += w;
-    roiSumByTier[idx] += roi;
     roiCountByTier[idx] += 1;
     realizedSumByTier[idx] += Math.max(0, toNum(row.realizedPnlUsd));
+    volumeSumByTier[idx] += Math.max(0, toNum(row.totalVolumeUsd));
   }
 
   const totalW = weightByTier.reduce((a, b) => a + b, 0);
@@ -3044,12 +3251,13 @@ function renderProfitableTradersTradeTierPie(
   const tierLabels: string[] = tierDef.tiers.map((t) => `${t.label} trades`);
   if (tierDef.zeroCount > 0) tierLabels.push('0 trades');
 
-  const colors = TRADE_TIER_PIE_COLORS;
   const slicePcts = weightByTier.map((w) => (w / totalW) * 100);
-  /* Outside labels remove the need to inflate tiny wedges; keep angles = true shares so % matches arc size. */
-  const segColors = weightByTier.map((_, i) => colors[i % colors.length]);
-  pie.style.background = buildPieGradientWithGaps(slicePcts, segColors);
-  mountDonutPieOverlays(pie, slicePcts, segColors, {
+  const nSlices = weightByTier.length;
+  const segFills: PieSliceSpec[] = weightByTier.map((_, i) =>
+    nSlices <= 1 ? tradeScaleBarGradientPair(0) : tradeScaleBarGradientPair(i / (nSlices - 1))
+  );
+  pie.style.background = buildPieGradientWithGaps(slicePcts, segFills);
+  mountDonutPieOverlays(pie, slicePcts, segFills, {
     mock: false,
     hubSubline: formatTradeTierCenterTradesSubtitle(totalW),
   });
@@ -3074,17 +3282,17 @@ function renderProfitableTradersTradeTierPie(
     .map((i) => {
       const label = tierLabels[i] ?? `Tier ${i + 1}`;
       const n = roiCountByTier[i];
-      const avgRoi = n > 0 ? roiSumByTier[i] / n : 0;
       const realized = realizedSumByTier[i];
+      const tierVol = volumeSumByTier[i];
       return renderPieLegendTradeTierRow(
         label,
         slicePcts[i],
-        avgRoi,
         realized,
+        tierVol,
         n,
         weightByTier[i],
         totalW,
-        segColors[i]
+        segFills[i]
       );
     })
     .join('');
@@ -3099,9 +3307,7 @@ function renderProfitableTradersTradeTierPie(
       }
     }
     const lbl = tierLabels[maxI] ?? 'Leading tier';
-    const n = roiCountByTier[maxI];
-    const avgRoi = n > 0 ? roiSumByTier[maxI] / n : 0;
-    tokenTradeTierInsightText.textContent = `${lbl} holds the largest share at ${formatPctSmart(maxPct)} (avg PnL ${formatPctSmart(avgRoi)} for traders in that tier).`;
+    tokenTradeTierInsightText.textContent = `${lbl} holds the largest share at ${formatPctSmart(maxPct)}.`;
   }
 }
 
@@ -3109,55 +3315,39 @@ function roiProfitPieRowWeight(row: TokenTopPnlTraderRow): number {
   return Math.max(0, toNum(row.totalVolumeUsd));
 }
 
-/**
- * Assign each trader row to a volume slice by realized PnL order so each slice holds ~1/k of total
- * traded dollars (whole rows; empty quantile slots are dropped).
- */
-function assignPnlItemsToNearEqualVolumeBins(
-  items: { weight: number; pnlUsd: number }[],
-  k: number
-): { weight: number; pnlLo: number; pnlHi: number }[] {
-  const sorted = [...items].sort((a, b) => a.pnlUsd - b.pnlUsd);
-  const total = sorted.reduce((s, x) => s + x.weight, 0);
-  if (total <= 0 || k <= 0 || sorted.length === 0) return [];
-
-  const binW = new Array(k).fill(0);
-  const binLo = new Array(k).fill(Infinity);
-  const binHi = new Array(k).fill(-Infinity);
-  let cum = 0;
-  for (const it of sorted) {
-    const mid = cum + it.weight / 2;
-    const b = Math.min(k - 1, Math.max(0, Math.floor((k * mid) / total)));
-    binW[b] += it.weight;
-    binLo[b] = Math.min(binLo[b], it.pnlUsd);
-    binHi[b] = Math.max(binHi[b], it.pnlUsd);
-    cum += it.weight;
-  }
-
-  const out: { weight: number; pnlLo: number; pnlHi: number }[] = [];
-  for (let i = 0; i < k; i++) {
-    if (binW[i] > 0 && Number.isFinite(binLo[i]) && Number.isFinite(binHi[i])) {
-      out.push({ weight: binW[i], pnlLo: binLo[i], pnlHi: binHi[i] });
-    }
-  }
-  return out;
-}
-
 function renderTopTraderVolumeByPnlUsdPie(rows: TokenTopPnlTraderRow[], target: { pie: HTMLElement; legend: HTMLElement }): void {
   const { pie, legend } = target;
 
-  const bandCount = TOKEN_VOLUME_BY_PNL_USD_BANDS.length;
-  const weightByBand = new Array(bandCount).fill(0);
+  const k = VOLUME_PNL_PIE_MERGED_USD_BANDS.length;
+  const weightByBand = new Array(k).fill(0);
+  const realizedSumByBand = new Array(k).fill(0);
+  const tradersByBand = new Array(k).fill(0);
+  const tradesByBand = new Array(k).fill(0);
+  let nonPosWeight = 0;
+  let nonPosRealized = 0;
+  let nonPosTraders = 0;
+  let nonPosTrades = 0;
+
   for (const row of rows) {
     const w = roiProfitPieRowWeight(row);
     if (w <= 0) continue;
     const pnl = toNum(row.realizedPnlUsd);
-    const idx = pnlUsdBandIndex(pnl);
-    if (idx < 0) continue;
-    weightByBand[idx] += w;
+    const tc = Math.max(0, Math.round(toNum(row.tradesCount)));
+    const idx = volumePnlPieMergedBandIndex(pnl);
+    if (idx != null) {
+      weightByBand[idx] += w;
+      realizedSumByBand[idx] += pnl;
+      tradersByBand[idx] += 1;
+      tradesByBand[idx] += tc;
+    } else {
+      nonPosWeight += w;
+      nonPosRealized += pnl;
+      nonPosTraders += 1;
+      nonPosTrades += tc;
+    }
   }
-  const totalWeight = weightByBand.reduce((a, b) => a + b, 0);
-  const coarseColors = TOKEN_VOLUME_BY_PNL_USD_BANDS.map((b) => b.color);
+
+  const totalWeight = weightByBand.reduce((a, b) => a + b, 0) + nonPosWeight;
   if (totalWeight <= 0) {
     pie.style.background = buildPieGradientWithGaps([1], ['#27272a']);
     clearDonutPieOverlays(pie);
@@ -3165,67 +3355,76 @@ function renderTopTraderVolumeByPnlUsdPie(rows: TokenTopPnlTraderRow[], target: 
     legend.innerHTML =
       `<div class="token-supply-legend-item"><div class="token-supply-legend-content"><div class="token-supply-legend-label">No volume in top ${lim} list</div></div></div>`;
     mountDonutPieCenterHub(pie, { mock: true, hubSubline: '—' });
+    if (tokenVolumePnlInsightText) tokenVolumePnlInsightText.textContent = '—';
     return;
   }
 
   const hubLine = `${formatUsdFull(totalWeight)} volume`;
+  const sliceWeights = nonPosWeight > 0 ? [...weightByBand, nonPosWeight] : [...weightByBand];
+  const sliceFills: PieSliceSpec[] =
+    nonPosWeight > 0 ? [...VOLUME_PNL_PIE_MERGED_SLICE_FILLS, VOLUME_PNL_PIE_NONPOSITIVE_FILL] : [...VOLUME_PNL_PIE_MERGED_SLICE_FILLS];
+  const slicePcts = sliceWeights.map((v) => (v / totalWeight) * 100);
 
-  const renderCoarseBands = (): void => {
-    const slicePcts = weightByBand.map((v) => (v / totalWeight) * 100);
-    pie.style.background = buildPieGradientWithGaps(slicePcts, coarseColors);
-    legend.innerHTML = TOKEN_VOLUME_BY_PNL_USD_BANDS.map((def, i) => {
-      const w = weightByBand[i];
-      const pct = slicePcts[i];
-      if (w <= 0) return '';
-      return renderPieLegendRow(def.label, pct, formatUsdFull(w), def.color);
-    }).join('');
-    mountDonutPieOverlays(pie, slicePcts, coarseColors, { mock: false, hubSubline: hubLine });
-  };
+  pie.style.background = buildPieGradientWithGaps(slicePcts, sliceFills);
 
-  const pnlItems: { weight: number; pnlUsd: number }[] = [];
-  for (const row of rows) {
-    const weight = roiProfitPieRowWeight(row);
-    if (weight <= 0) continue;
-    const pnlUsd = toNum(row.realizedPnlUsd);
-    if (!Number.isFinite(pnlUsd)) continue;
-    pnlItems.push({ weight, pnlUsd });
-  }
-
-  const k = MIN_VOLUME_PNL_PIE_SEGMENTS;
-  if (pnlItems.length < k) {
-    renderCoarseBands();
-    return;
-  }
-
-  const volumeBins = assignPnlItemsToNearEqualVolumeBins(pnlItems, k);
-  if (volumeBins.length === 0) {
-    renderCoarseBands();
-    return;
-  }
-
-  const colors = ROI_EQUAL_COUNT_BIN_COLORS;
-  const segments: { label: string; color: string; weight: number }[] = volumeBins.map((bin, i) => ({
-    label: `Between ${formatUsdBandSpan(bin.pnlLo, bin.pnlHi)} realized PnL`,
-    color: colors[i % colors.length],
-    weight: bin.weight,
+  const nonPosLabel = 'At or below $0 realized PnL';
+  const legendRows: {
+    label: string;
+    pct: number;
+    w: number;
+    realizedUsd: number;
+    fill: PieSliceSpec;
+    traders: number;
+    trades: number;
+  }[] = VOLUME_PNL_PIE_MERGED_USD_BANDS.map((def, i) => ({
+    label: def.label,
+    pct: slicePcts[i],
+    w: weightByBand[i],
+    realizedUsd: realizedSumByBand[i],
+    fill: VOLUME_PNL_PIE_MERGED_SLICE_FILLS[i] ?? '#27272a',
+    traders: tradersByBand[i],
+    trades: tradesByBand[i],
   }));
+  if (nonPosWeight > 0) {
+    legendRows.push({
+      label: nonPosLabel,
+      pct: slicePcts[k],
+      w: nonPosWeight,
+      realizedUsd: nonPosRealized,
+      fill: VOLUME_PNL_PIE_NONPOSITIVE_FILL,
+      traders: nonPosTraders,
+      trades: nonPosTrades,
+    });
+  }
 
-  const segTotal = segments.reduce((s, x) => s + x.weight, 0);
-  const slicePcts = segments.map((s) => (s.weight / segTotal) * 100);
-  const segColors = segments.map((s) => s.color);
-  pie.style.background = buildPieGradientWithGaps(slicePcts, segColors);
-  legend.innerHTML = segments
-    .map((seg, i) => {
-      if (seg.weight <= 0) return '';
-      return renderPieLegendRow(
-        seg.label,
-        slicePcts[i],
-        formatUsdFull(seg.weight),
-        seg.color
-      );
-    })
+  legend.innerHTML = legendRows
+    .map((row) =>
+      renderPieLegendVolumePnlCard(
+        row.label,
+        row.pct,
+        row.realizedUsd,
+        row.traders,
+        row.trades,
+        row.w,
+        totalWeight,
+        row.fill
+      )
+    )
     .join('');
-  mountDonutPieOverlays(pie, slicePcts, segColors, { mock: false, hubSubline: hubLine });
+  mountDonutPieOverlays(pie, slicePcts, sliceFills, { mock: false, hubSubline: hubLine });
+
+  const activeVolRows = legendRows.filter((r) => r.w > 0);
+  if (tokenVolumePnlInsightText) {
+    if (activeVolRows.length === 0) {
+      tokenVolumePnlInsightText.textContent = '—';
+    } else {
+      let maxRow = activeVolRows[0];
+      for (const r of activeVolRows) {
+        if (r.pct > maxRow.pct) maxRow = r;
+      }
+      tokenVolumePnlInsightText.textContent = `${maxRow.label} holds the largest dollar share at ${formatPctSmart(maxRow.pct)}.`;
+    }
+  }
 }
 
 function renderTradesCountDistributionVerticalBars(

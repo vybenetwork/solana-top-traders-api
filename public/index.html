@@ -4,20 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Solana Top Traders Wallets & Tokens</title>
-  <link rel="stylesheet" href="app.css?v=144" />
+  <link rel="stylesheet" href="app.css?v=183" />
 </head>
 <body>
   <div class="container">
     <header>
       <h1>Top Traders Wallets & Tokens</h1>
-      <p class="subtitle">Solana top traders discovery via token or wallet search with Vybe API</p>
+      <p class="subtitle wallet-pnl-pnl-trading-lede">Solana top traders discovery via token or wallet search with Vybe API</p>
     </header>
 
     <section class="inputs panel">
       <div class="section-header">
-        <h2>Remote filters</h2>
+        <h2 class="token-stats-group-title">Remote filters</h2>
       </div>
-      <p class="meta remote-filters-help">
+      <p class="remote-filters-help wallet-pnl-pnl-trading-lede">
         <strong>Remote filters</strong> map directly to Vybe query params for Wallet Top Traders and Token Top PnL Traders.
       </p>
 
@@ -256,7 +256,7 @@
 
     <section class="token-section panel" id="tokenSection">
       <div class="section-header">
-        <h2>Token stats & metadata</h2>
+        <h2 class="token-stats-group-title">Token stats & metadata</h2>
         <div class="section-loading" id="tokenSectionLoading" hidden aria-hidden="true">
           <span class="loading-spinner"></span>
           <span class="loading-text">Loading…</span>
@@ -283,26 +283,26 @@
 
     <section class="panel token-supply-panel" id="tokenSupplyPanelTotal">
       <div class="section-header token-supply-period-header">
-        <h2 class="token-supply-period-title" id="tokenSupplySelectedTitle">30 Days</h2>
+        <h2 class="token-supply-period-title token-stats-group-title" id="tokenSupplySelectedTitle">30 Days</h2>
       </div>
-      <p class="meta token-supply-period-desc">Volume, PnL, and trade-count charts follow the resolution you pick below.</p>
-      <div class="token-supply-grid token-supply-grid--trade-count-pie-row">
+      <p class="token-supply-period-desc wallet-pnl-pnl-trading-lede">Volume, PnL, and trade-count charts follow the resolution you pick below.</p>
+      <div class="token-supply-grid token-supply-grid--trade-count-pie-row token-supply-grid--section-gap">
         <div class="token-supply-card token-supply-card--fullwidth token-supply-card--trade-tier-dash">
           <header class="token-trade-tier-dash__top">
             <div class="token-trade-tier-dash__titles">
-              <h2 id="tokenTopTradesByProfitTitle">Profitable traders by activity (Last 30 Days)</h2>
-              <p class="meta token-trade-tier-dash__lede" id="tokenTradeTierLede"></p>
+              <h2 class="token-stats-group-title" id="tokenTopTradesByProfitTitle">Profitable traders by activity (Last 30 Days)</h2>
+              <p class="token-trade-tier-dash__lede wallet-pnl-pnl-trading-lede" id="tokenTradeTierLede"></p>
             </div>
             <aside class="token-trade-tier-dash__insight" aria-label="Insight">
               <span class="token-trade-tier-dash__insight-bulb" aria-hidden="true">💡</span>
-              <p class="token-trade-tier-dash__insight-text" id="tokenTradeTierInsightText">—</p>
+              <p class="token-trade-tier-dash__insight-text wallet-pnl-pnl-trading-lede" id="tokenTradeTierInsightText">—</p>
             </aside>
           </header>
 
           <div class="token-trade-tier-dash__main">
             <div class="token-trade-tier-dash__chart-col">
-              <h3 class="token-trade-tier-dash__chart-title">Share of total trades</h3>
-              <p class="token-trade-tier-dash__chart-note">
+              <h3 class="token-stats-group-title token-trade-tier-dash__chart-title">Share of total trades</h3>
+              <p class="token-trade-tier-dash__chart-note wallet-pnl-pnl-trading-lede">
                 <span class="token-trade-tier-dash__note-ico" aria-hidden="true">ⓘ</span>
                 Slice size is share of trade count among profitable traders, not number of traders.
               </p>
@@ -322,14 +322,26 @@
             </div>
           </div>
 
+          <div id="tokenTradesCountSelectedRow" class="token-trade-tier-dash__trades-dist" hidden>
+            <h3 class="token-stats-group-title token-trade-tier-dash__chart-title" id="tokenTradesCountSelectedTitle">
+              Trades count distribution (Last 30 Days)
+            </h3>
+            <p class="token-trade-tier-dash__chart-note wallet-pnl-pnl-trading-lede" id="tokenSupplyCardDescTradesVertical"></p>
+            <div
+              class="token-trades-vertical-bars"
+              id="tokenTradesCountBarsVertical"
+              aria-label="Trades count distribution groups for selected resolution fetch"
+            ></div>
+          </div>
+
           <footer class="token-trade-tier-dash__footer">
             <div class="token-trade-tier-dash__footer-col">
-              <h4 class="token-trade-tier-dash__footer-heading">Methodology</h4>
-              <p class="token-trade-tier-dash__footer-p" id="tokenTradeTierFooterMethodology"></p>
+              <h4 class="token-stats-group-title token-trade-tier-dash__footer-heading">Methodology</h4>
+              <p class="token-trade-tier-dash__footer-p wallet-pnl-pnl-trading-lede" id="tokenTradeTierFooterMethodology"></p>
             </div>
-            <div class="token-trade-tier-dash__footer-col">
-              <h4 class="token-trade-tier-dash__footer-heading">Scope</h4>
-              <p class="token-trade-tier-dash__footer-p" id="tokenTradeTierFooterScope"></p>
+            <div class="token-trade-tier-dash__footer-col token-trade-tier-dash__footer-col--scope">
+              <h4 class="token-stats-group-title token-trade-tier-dash__footer-heading">Scope</h4>
+              <p class="token-trade-tier-dash__footer-p wallet-pnl-pnl-trading-lede" id="tokenTradeTierFooterScope"></p>
             </div>
             <div class="token-trade-tier-dash__footer-aside">
               <span class="token-trade-tier-dash__timeframe-label">Timeframe</span>
@@ -338,41 +350,74 @@
           </footer>
         </div>
       </div>
-      <div class="token-supply-grid">
-        <div class="token-supply-card token-supply-card--volume-pnl-pie">
-          <div class="section-header">
-            <h2 id="tokenTopVolumeSelectedTitle">Volume by PnL amount (Last 30 Days)</h2>
+      <div class="token-supply-grid token-supply-grid--trade-count-pie-row token-supply-grid--section-gap">
+        <div
+          class="token-supply-card token-supply-card--fullwidth token-supply-card--trade-tier-dash token-supply-card--volume-pnl-pie"
+        >
+          <header class="token-trade-tier-dash__top">
+            <div class="token-trade-tier-dash__titles">
+              <h2 class="token-stats-group-title" id="tokenTopVolumeSelectedTitle">Profitable traders by volume (Last 30 Days)</h2>
+              <p class="token-trade-tier-dash__lede wallet-pnl-pnl-trading-lede" id="tokenVolumePnlLede"></p>
+            </div>
+            <aside class="token-trade-tier-dash__insight" aria-label="Volume insight">
+              <span class="token-trade-tier-dash__insight-bulb" aria-hidden="true">💡</span>
+              <p class="token-trade-tier-dash__insight-text wallet-pnl-pnl-trading-lede" id="tokenVolumePnlInsightText">—</p>
+            </aside>
+          </header>
+          <div class="token-trade-tier-dash__main">
+            <div class="token-trade-tier-dash__chart-col">
+              <h3 class="token-stats-group-title token-trade-tier-dash__chart-title">Share of total volume</h3>
+              <p class="token-trade-tier-dash__chart-note token-trade-tier-dash__chart-note--volume-share wallet-pnl-pnl-trading-lede">
+                <span class="token-trade-tier-dash__note-ico" aria-hidden="true">ⓘ</span>
+                Slice size is each band’s share of traded dollars in the top list; non‑positive PnL appears as an extra slice when present.
+              </p>
+              <div class="token-supply-wrap token-supply-wrap--trade-tier-pie">
+                <div
+                  class="token-supply-pie token-supply-pie--donut-labels"
+                  id="tokenSupplyPieTotal"
+                  aria-label="Dollar share by four merged realized PnL USD bands"
+                ></div>
+              </div>
+            </div>
+            <div class="token-trade-tier-dash__legend-col">
+              <div
+                class="token-supply-legend token-supply-legend--compact-grid token-supply-legend--tier-dashboard"
+                id="tokenSupplyLegendTotal"
+              ></div>
+            </div>
           </div>
-          <p class="meta token-supply-card-desc">Dollar share by each trader’s realized PnL (USD) band. Slice size is that band’s share of total traded dollars in the top list.</p>
-          <div class="token-supply-wrap">
-            <div class="token-supply-pie token-supply-pie--donut-labels" id="tokenSupplyPieTotal" aria-label="Dollar share by realized PnL amount"></div>
-            <div class="token-supply-legend token-supply-legend--compact-grid" id="tokenSupplyLegendTotal"></div>
-          </div>
-        </div>
 
-        <div class="token-supply-card">
-          <div class="section-header token-supply-subheader">
-            <h2 id="tokenPnlSelectedTitle">PnL distribution</h2>
+          <div class="token-trade-tier-dash__pnl-dist">
+            <h3 class="token-stats-group-title token-trade-tier-dash__chart-title" id="tokenPnlSelectedTitle">PnL distribution</h3>
+            <p class="token-trade-tier-dash__chart-note wallet-pnl-pnl-trading-lede" id="tokenSupplyCardDescPnl"></p>
+            <div
+              class="token-trades-vertical-bars token-trades-vertical-bars--cols8"
+              id="tokenPnlBarsTotal"
+              aria-label="Traders per realized PnL USD band for selected resolution fetch"
+            ></div>
           </div>
-          <p class="meta token-supply-card-desc" id="tokenSupplyCardDescPnl"></p>
-          <div class="token-pnl-bars" id="tokenPnlBarsTotal" aria-label="PnL distribution groups for selected resolution fetch">
-          </div>
-        </div>
 
-        <div class="token-supply-card token-supply-card--fullwidth" id="tokenTradesCountSelectedRow" hidden>
-          <div class="section-header token-supply-subheader">
-            <h2 id="tokenTradesCountSelectedTitle">Trades count distribution (Last 30 Days)</h2>
-          </div>
-          <p class="meta token-supply-card-desc" id="tokenSupplyCardDescTradesVertical"></p>
-          <div class="token-trades-vertical-bars" id="tokenTradesCountBarsVertical" aria-label="Trades count distribution groups for selected resolution fetch">
-          </div>
+          <footer class="token-trade-tier-dash__footer">
+            <div class="token-trade-tier-dash__footer-col">
+              <h4 class="token-stats-group-title token-trade-tier-dash__footer-heading">Methodology</h4>
+              <p class="token-trade-tier-dash__footer-p wallet-pnl-pnl-trading-lede" id="tokenVolumePnlFooterMethodology"></p>
+            </div>
+            <div class="token-trade-tier-dash__footer-col token-trade-tier-dash__footer-col--scope">
+              <h4 class="token-stats-group-title token-trade-tier-dash__footer-heading">Scope</h4>
+              <p class="token-trade-tier-dash__footer-p wallet-pnl-pnl-trading-lede" id="tokenVolumePnlFooterScope"></p>
+            </div>
+            <div class="token-trade-tier-dash__footer-aside">
+              <span class="token-trade-tier-dash__timeframe-label">Timeframe</span>
+              <span class="token-trade-tier-dash__timeframe-value" id="tokenVolumePnlTimeframe">30 Days</span>
+            </div>
+          </footer>
         </div>
       </div>
     </section>
 
     <section class="top-traders-section panel" id="topTradersSection">
       <div class="section-header">
-        <h2 id="walletTopTradersTitle">Top traders (by realized PnL, 30d)</h2>
+        <h2 class="token-stats-group-title" id="walletTopTradersTitle">Top traders (by realized PnL, 30d)</h2>
         <div class="section-loading" id="topTradersLoading" hidden aria-hidden="true">
           <span class="loading-spinner"></span>
           <span class="loading-text">Loading…</span>
@@ -380,7 +425,7 @@
         <span class="section-error" id="topTradersError" hidden aria-hidden="true"></span>
       </div>
       <div class="top-traders-content" id="topTradersContentWrap">
-        <p class="meta" id="topTradersMeta">—</p>
+        <p class="wallet-pnl-pnl-trading-lede" id="topTradersMeta">—</p>
         <div class="wallet-top-traders-grid" id="topTradersCards">
           <section class="token-stats-group wallet-top-trader-card">
             <h3 class="token-stats-group-title"><span>Top trader</span></h3>
@@ -393,7 +438,7 @@
             </dl>
           </section>
         </div>
-        <p class="meta" id="walletPnlMeta">—</p>
+        <p class="wallet-pnl-pnl-trading-lede" id="walletPnlMeta">—</p>
         <div class="wallet-pnl-details" id="walletPnlDetails">
           <section class="token-stats-group">
             <h3 class="token-stats-group-title"><span>Wallet PnL summary</span></h3>
@@ -410,7 +455,7 @@
 
     <section class="top-traders-section panel token-top-pnl-section" id="tokenTopPnlSection">
       <div class="section-header">
-        <h2>Top PnL traders (by token)</h2>
+        <h2 class="token-stats-group-title">Top PnL traders (by token)</h2>
         <div class="section-loading" id="tokenTopPnlLoading" hidden aria-hidden="true">
           <span class="loading-spinner"></span>
           <span class="loading-text">Loading…</span>
@@ -418,7 +463,7 @@
         <span class="section-error" id="tokenTopPnlError" hidden aria-hidden="true"></span>
       </div>
       <div class="top-traders-content">
-        <p class="meta" id="tokenTopPnlMeta">—</p>
+        <p class="wallet-pnl-pnl-trading-lede" id="tokenTopPnlMeta">—</p>
         <div class="token-stats-group token-top-pnl-table-card">
           <h3 class="token-stats-group-title"><span>Top PnL traders</span></h3>
           <div class="table-wrap">
@@ -444,10 +489,10 @@
     </section>
 
     <section class="error panel" id="errorSection" hidden>
-      <h2>Error</h2>
+      <h2 class="token-stats-group-title">Error</h2>
       <pre id="errorText"></pre>
     </section>
   </div>
-  <script src="app.js?v=144"></script>
+  <script src="app.js?v=182"></script>
 </body>
 </html>

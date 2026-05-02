@@ -6,6 +6,12 @@
   display: none !important;
 }
 
+:root {
+  /* Positive realized-PnL distribution bars only (`--positive`). */
+  --token-pnl-positive-from: #16a34a;
+  --token-pnl-positive-to: #4ade80;
+}
+
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   margin: 0;
@@ -630,8 +636,29 @@ button:active {
   color: #a1a1aa;
 }
 
+.panel h2.token-stats-group-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 1rem 0;
+}
+
+.section-header h2.token-stats-group-title {
+  margin-bottom: 0;
+}
+
+.inputs.panel .section-header h2.token-stats-group-title {
+  margin-bottom: 0;
+}
+
 /* Override .panel h2 bottom margin inside token supply cards (section-header already wants tight stack). */
 .token-supply-panel .section-header h2 {
+  margin: 0;
+}
+
+.token-supply-panel .section-header h2.token-stats-group-title {
   margin: 0;
 }
 
@@ -1207,9 +1234,8 @@ button:active {
   margin: 0;
 }
 
-.token-supply-period-title {
+.token-supply-period-title.token-stats-group-title {
   margin: 0;
-  font-size: 1.05rem;
 }
 
 .token-supply-grid {
@@ -1221,6 +1247,14 @@ button:active {
 .token-supply-grid--trade-count-pie-row {
   grid-template-columns: 1fr;
   margin-bottom: 0.25rem;
+}
+
+.token-supply-grid--section-gap {
+  margin-bottom: 1.15rem;
+}
+
+.token-trade-tier-dash__top--titles-only {
+  grid-template-columns: 1fr;
 }
 
 .token-supply-card {
@@ -1300,11 +1334,18 @@ button:active {
   flex: 0 0 auto;
   border-radius: 50%;
   border: none;
+  /* GPU layer + slight rim soften — reduces stair-stepping on conic slice edges in some browsers. */
+  transform: translateZ(0);
+  isolation: isolate;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.08),
     0 0 0 1px rgba(0, 0, 0, 0.55) inset,
+    0 0 0.65px rgba(0, 0, 0, 0.45),
     0 10px 32px rgba(0, 0, 0, 0.5);
-  background: conic-gradient(#3b82f6 0deg 0deg, #2563eb 0deg 0deg, #1d4ed8 0deg 0deg, #27272a 0deg 360deg);
+  /* Neutral until JS sets conic-gradient (avoids stale blue placeholder being mistaken for chart colors). */
+  background: #1a1a1f;
 }
 
 .token-supply-pie::after {
@@ -1328,13 +1369,9 @@ button:active {
   overflow: visible;
 }
 
-/* Volume-by-profit % card only: breathe room under the card rim + slightly smaller donut. */
+/* Volume-by-PnL dash card: extra top padding under the card rim (donut uses default .token-supply-pie sizing — same as trade-tier pie above). */
 .token-supply-card--volume-pnl-pie {
   padding-top: calc(1rem + 6px);
-}
-
-.token-supply-card--volume-pnl-pie .token-supply-pie {
-  width: clamp(158px, 17vw, 208px);
 }
 
 .token-supply-pie__label-svg {
@@ -1604,7 +1641,7 @@ button:active {
 
 .token-tier-metric {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.42rem;
   font-size: 0.66rem;
   line-height: 1.35;
@@ -1622,7 +1659,6 @@ button:active {
   font-size: 0.58rem;
   font-weight: 800;
   line-height: 1;
-  margin-top: 0.05rem;
 }
 
 /* Tier-colored slice indicator: same footprint as other metric icons (not a floating dot). */
@@ -1653,6 +1689,12 @@ button:active {
   color: #86efac;
   border: 1px solid rgba(134, 239, 172, 0.18);
   font-size: 0.62rem;
+}
+
+.token-tier-metric__ico--volume {
+  background: rgba(125, 211, 252, 0.12);
+  color: #7dd3fc;
+  border: 1px solid rgba(125, 211, 252, 0.22);
 }
 
 .token-tier-metric__ico--people {
@@ -1699,6 +1741,44 @@ button:active {
   font-weight: 600;
 }
 
+.token-tier-metric__accent-volume {
+  color: #7dd3fc;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Volume-by-PnL cards: band trades only, smaller light purple. */
+.token-tier-metric__vol-pnl-trades-val {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #c4b5fd;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ratio split: primary value vs smaller grey “ / total” (volume-by-PnL total row + profitable tier Total trades). */
+.token-tier-metric__ratio--vol-pnl-split {
+  font-size: unset;
+  font-weight: unset;
+  color: unset;
+  letter-spacing: unset;
+}
+
+.token-tier-metric__vol-pnl-slice-val {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #e0f2fe;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.token-tier-metric__vol-pnl-totalvol-suffix {
+  font-size: 0.58rem;
+  font-weight: 500;
+  color: #71717a;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
 .token-tier-metric__emph {
   color: #e4e4e7;
   font-weight: 600;
@@ -1742,27 +1822,18 @@ button:active {
 /* Profitable traders by activity — dashboard layout */
 .token-trade-tier-dash__top {
   display: grid;
-  grid-template-columns: 1fr minmax(188px, 320px);
+  grid-template-columns: 1fr minmax(188px, 340px);
   gap: 1rem 1.25rem;
   align-items: start;
   margin-bottom: 1rem;
 }
 
-.token-trade-tier-dash__titles h2 {
+.token-trade-tier-dash__titles h2.token-stats-group-title {
   margin: 0 0 0.45rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: #fafafa;
   line-height: 1.25;
 }
 
-.token-trade-tier-dash__lede {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: #a1a1aa;
+.token-trade-tier-dash__lede.wallet-pnl-pnl-trading-lede {
   max-width: 52ch;
 }
 
@@ -1784,9 +1855,10 @@ button:active {
 
 .token-trade-tier-dash__insight-text {
   margin: 0;
-  font-size: 0.72rem;
+}
+
+.token-trade-tier-dash__insight-text.wallet-pnl-pnl-trading-lede {
   line-height: 1.45;
-  color: #d4d4d8;
 }
 
 .token-trade-tier-dash__main {
@@ -1797,23 +1869,38 @@ button:active {
   margin-bottom: 1rem;
 }
 
-.token-trade-tier-dash__chart-title {
+/* Profitable traders by volume: wider pie column only on this card (chart + legend). */
+.token-supply-card--volume-pnl-pie .token-trade-tier-dash__main {
+  grid-template-columns: minmax(200px, 460px) 1fr;
+}
+
+/* Trades-count & PnL distribution vertical bars: full-width rows inside dash cards. */
+.token-trade-tier-dash__trades-dist,
+.token-trade-tier-dash__pnl-dist {
+  margin-top: 0.35rem;
+  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.token-trade-tier-dash__trades-dist .token-trades-vertical-bars,
+.token-trade-tier-dash__pnl-dist .token-trades-vertical-bars {
+  margin-top: 0.15rem;
+}
+
+.token-trade-tier-dash__chart-title.token-stats-group-title {
   margin: 0 0 0.35rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #e4e4e7;
 }
 
 .token-trade-tier-dash__chart-note {
   margin: 0 0 0.65rem;
-  font-size: 0.65rem;
-  line-height: 1.4;
-  color: #71717a;
   display: flex;
   gap: 0.35rem;
   align-items: flex-start;
+}
+
+.token-trade-tier-dash__chart-note--volume-share {
+  margin-right: 40px;
 }
 
 .token-trade-tier-dash__note-ico {
@@ -1854,27 +1941,38 @@ button:active {
 .token-trade-tier-dash__footer {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
-  gap: 1rem 1.25rem;
+  gap: 1rem 0;
+  column-gap: 0;
   align-items: start;
   margin-top: 0.25rem;
   padding-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.token-trade-tier-dash__footer-heading {
-  margin: 0 0 0.35rem;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #a1a1aa;
+.token-trade-tier-dash__footer-col {
+  padding-right: 1.15rem;
 }
 
-.token-trade-tier-dash__footer-p {
+.token-trade-tier-dash__footer-col + .token-trade-tier-dash__footer-col {
+  padding-left: 1.15rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.token-trade-tier-dash__footer-col .token-trade-tier-dash__footer-p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.token-trade-tier-dash__footer-heading.token-stats-group-title {
+  margin: 0 0 0.35rem;
+}
+
+.token-trade-tier-dash__footer-p.wallet-pnl-pnl-trading-lede {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
   line-height: 1.45;
-  color: #71717a;
 }
 
 .token-trade-tier-dash__code {
@@ -1889,10 +1987,12 @@ button:active {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: 0.5rem 0.65rem;
+  margin-left: 0;
+  padding: 0.5rem 0.65rem 0.5rem calc(1.15rem + 0.65rem);
   border-radius: 8px;
   background: rgba(15, 15, 18, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
   min-width: 120px;
 }
 
@@ -1919,8 +2019,33 @@ button:active {
     grid-template-columns: 1fr;
   }
 
+  .token-supply-card--volume-pnl-pie .token-trade-tier-dash__main {
+    grid-template-columns: 1fr;
+  }
+
   .token-trade-tier-dash__footer {
     grid-template-columns: 1fr;
+    row-gap: 0;
+  }
+
+  .token-trade-tier-dash__footer-col {
+    padding-right: 0;
+  }
+
+  .token-trade-tier-dash__footer-col + .token-trade-tier-dash__footer-col {
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1rem;
+    margin-top: 0.75rem;
+  }
+
+  .token-trade-tier-dash__footer-aside {
+    padding: 0.5rem 0.65rem;
+    margin-top: 0.75rem;
+    padding-top: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
   }
 }
 
@@ -1984,7 +2109,7 @@ button:active {
 }
 
 .token-pnl-bar-fill--positive {
-  background: linear-gradient(90deg, #16a34a, #4ade80);
+  background: linear-gradient(90deg, var(--token-pnl-positive-from), var(--token-pnl-positive-to));
 }
 
 .token-pnl-bar-fill--negative {
@@ -1995,6 +2120,7 @@ button:active {
   background: linear-gradient(90deg, #6b7280, #9ca3af);
 }
 
+/* Hue sweep green → red; volume-by-PnL pie slices use tradeScaleBarSolidColor(t) in app.ts with same hue/L stops. */
 .token-pnl-bar-fill--trade-scale {
   background: linear-gradient(
     90deg,
@@ -2026,6 +2152,10 @@ button:active {
   grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 0.65rem;
   align-items: start;
+}
+
+.token-trades-vertical-bars--cols8 {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 
 .token-trades-vertical-bar-item {
@@ -2080,13 +2210,12 @@ button:active {
   margin: 0 0 0.75rem 0;
 }
 
-.meta.token-supply-period-desc,
-.meta.token-supply-card-desc {
+.token-supply-period-desc.wallet-pnl-pnl-trading-lede {
   margin: 0 0 26px 0;
-  font-size: 0.74rem;
-  line-height: 1.4;
-  font-weight: 400;
-  color: #71717a;
+}
+
+.token-supply-card-desc.wallet-pnl-pnl-trading-lede {
+  margin: 0 0 26px 0;
 }
 
 .trades-summary-grid {
@@ -2105,12 +2234,22 @@ button:active {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
+  .token-trades-vertical-bars--cols8 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .token-trades-vertical-track {
     height: 180px;
   }
 
   .trades-summary-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .token-trades-vertical-bars--cols8 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2247,8 +2386,6 @@ button:active {
 
 .token-top-pnl-table-card .token-stats-group-title {
   margin: 0;
-  color: #c4c4cc;
-  letter-spacing: 0.055em;
 }
 
 .token-top-pnl-table-card .table-wrap thead th {
