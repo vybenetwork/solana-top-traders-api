@@ -12,6 +12,10 @@
   --token-pnl-positive-to: #4ade80;
 }
 
+html {
+  overflow-x: auto;
+}
+
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   margin: 0;
@@ -19,6 +23,8 @@ body {
   background: #0f0f12;
   color: #e4e4e7;
   min-height: 100vh;
+  /* Lock desktop-style layouts site-wide; narrow viewports scroll horizontally. */
+  min-width: 1100px;
 }
 
 .container {
@@ -381,12 +387,6 @@ header h1 {
 .remote-top-row .wallet-resolution-field select {
   width: 88px;
   min-width: 88px;
-}
-
-@media (max-width: 980px) {
-  .remote-top-row {
-    flex-wrap: wrap;
-  }
 }
 
 .trades-fetch-lock {
@@ -914,17 +914,6 @@ button:active {
   background: rgba(56, 189, 248, 0.12);
 }
 
-.token-section-content .token-stat-row--symbol {
-  border-color: rgba(251, 191, 36, 0.25);
-  background: linear-gradient(165deg, rgba(245, 158, 11, 0.08), rgba(0, 0, 0, 0.26));
-}
-
-.token-section-content .token-stat-row--symbol .token-stat-row-icon {
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.38);
-  background: rgba(251, 191, 36, 0.1);
-}
-
 .token-section-content .token-stat-row--decimals {
   border-color: rgba(167, 139, 250, 0.28);
   background: linear-gradient(165deg, rgba(139, 92, 246, 0.08), rgba(0, 0, 0, 0.26));
@@ -947,15 +936,10 @@ button:active {
   background: rgba(249, 115, 22, 0.1);
 }
 
-.token-section-content .token-stat-row--subcategory {
-  border-color: rgba(244, 114, 182, 0.25);
-  background: linear-gradient(165deg, rgba(244, 114, 182, 0.07), rgba(0, 0, 0, 0.26));
-}
-
-.token-section-content .token-stat-row--subcategory .token-stat-row-icon {
-  color: #f472b6;
-  border-color: rgba(244, 114, 182, 0.35);
-  background: rgba(244, 63, 94, 0.08);
+.token-section-content .token-stat-price-pct {
+  margin-left: 0.25em;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .token-section-content .token-stat-row--verified {
@@ -1096,48 +1080,6 @@ button:active {
 
 .token-stats-pair-grid .token-stat-rows {
   flex: 0 1 auto;
-}
-
-@media (max-width: 960px) {
-  .token-stats-row.token-stats-row--split-overview {
-    grid-template-columns: 1fr;
-    align-items: start;
-  }
-
-  .token-stats-col--overview .token-stats-group {
-    flex: 0 1 auto;
-    height: auto;
-  }
-
-  .token-stats-col--overview .token-stat-rows--2col {
-    flex: 0 1 auto;
-  }
-
-  .token-stats-pair-grid {
-    flex: 0 1 auto;
-    align-items: start;
-    grid-template-columns: 1fr;
-  }
-
-  .token-stats-pair-grid > .token-stats-group {
-    height: auto;
-  }
-
-  .token-stats-pair-grid .token-stat-rows {
-    flex: 0 1 auto;
-  }
-}
-
-@media (max-width: 640px) {
-  .token-section-content .token-stat-rows--2col {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .token-stats-row {
-    grid-template-columns: 1fr;
-  }
 }
 
 .token-stats-col {
@@ -1308,12 +1250,6 @@ button:active {
 
 .token-stats-group--meta::before {
   background: linear-gradient(180deg, #a78bfa, #6366f1);
-}
-
-@media (max-width: 1100px) {
-  .token-supply-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .token-supply-wrap {
@@ -1910,6 +1846,7 @@ button:active {
 
 .token-supply-wrap--trade-tier-pie {
   justify-content: center;
+  flex-wrap: nowrap;
   margin-top: 1.75rem;
   padding: 0.45rem min(5.5vw, 22px);
   overflow: visible;
@@ -2008,73 +1945,6 @@ button:active {
   font-size: 0.85rem;
   font-weight: 700;
   color: #e4e4e7;
-}
-
-@media (max-width: 1100px) {
-  .token-trade-tier-dash__top {
-    grid-template-columns: 1fr;
-  }
-
-  .token-trade-tier-dash__main {
-    grid-template-columns: 1fr;
-  }
-
-  .token-supply-card--volume-pnl-pie .token-trade-tier-dash__main {
-    grid-template-columns: 1fr;
-  }
-
-  .token-trade-tier-dash__footer {
-    grid-template-columns: 1fr;
-    row-gap: 0;
-  }
-
-  .token-trade-tier-dash__footer-col {
-    padding-right: 0;
-  }
-
-  .token-trade-tier-dash__footer-col + .token-trade-tier-dash__footer-col {
-    padding-left: 0;
-    border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 1rem;
-    margin-top: 0.75rem;
-  }
-
-  .token-trade-tier-dash__footer-aside {
-    padding: 0.5rem 0.65rem;
-    margin-top: 0.75rem;
-    padding-top: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-  }
-}
-
-@media (max-width: 960px) {
-  .token-supply-legend--cols6 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 520px) {
-  .token-supply-legend--cols6 {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 1100px) {
-  .token-supply-legend--compact-grid.token-supply-legend--cols3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 420px) {
-  .token-supply-legend--compact-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .token-supply-legend--compact-grid.token-supply-legend--cols3 {
-    grid-template-columns: 1fr;
-  }
 }
 
 .token-pnl-bars {
@@ -2227,30 +2097,6 @@ button:active {
 
 .trades-summary-programs-fullrow {
   grid-column: 1 / -1;
-}
-
-@media (max-width: 900px) {
-  .token-trades-vertical-bars {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .token-trades-vertical-bars--cols8 {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .token-trades-vertical-track {
-    height: 180px;
-  }
-
-  .trades-summary-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 520px) {
-  .token-trades-vertical-bars--cols8 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .trades-summary-block {
@@ -2772,16 +2618,6 @@ button:active {
   justify-content: flex-start;
 }
 
-@media (max-width: 520px) {
-  .wallet-pnl-metric-row {
-    grid-template-columns: 1fr;
-  }
-
-  .wallet-pnl-metric-row--tight {
-    grid-template-columns: 1fr;
-  }
-}
-
 .wallet-pnl-metric-chip {
   padding: 0.5rem 0.55rem;
   border-radius: 6px;
@@ -2844,12 +2680,6 @@ button:active {
   flex: 1;
   min-height: 0;
   align-items: stretch;
-}
-
-@media (max-width: 520px) {
-  .wallet-pnl-highlight-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .wallet-pnl-highlight-card {
@@ -3034,20 +2864,6 @@ button:active {
 .wallet-trend-table td {
   border-bottom-color: #23232b;
   padding: 0.42rem 0.65rem;
-}
-
-@media (max-width: 1080px) {
-  .wallet-pnl-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .wallet-pnl-trend-col > .wallet-pnl-card--trend {
-    min-height: auto;
-  }
-
-  .wallet-pnl-pie-stack {
-    height: auto !important;
-  }
 }
 
 .wallet-pnl-token-grid {

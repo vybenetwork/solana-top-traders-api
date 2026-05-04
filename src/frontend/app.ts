@@ -1259,6 +1259,14 @@ function formatTokenStatPriceValueHtml(
   return `${minus}<span class="token-stat-row-price-num token-stat-row-price-num--compact">0.0<sup class="token-price-zero-run">${String(zeroRun)}</sup>${escapeHtmlText(mantissa)}</span>${suffix}`;
 }
 
+function formatCategoryOverviewValueHtml(category: string | undefined, subcategory: string | undefined): string {
+  const cat = (category ?? '').trim();
+  const sub = (subcategory ?? '').trim();
+  if (!cat && !sub) return escapeHtmlText('—');
+  if (cat && sub) return escapeHtmlText(`${cat} (${sub})`);
+  return escapeHtmlText(cat || sub);
+}
+
 const tokenSectionIcons: Record<string, string> = {
   overview:
     '<svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>',
@@ -1270,10 +1278,8 @@ const tokenSectionIcons: Record<string, string> = {
 
 type TokenStatRowKey =
   | 'mint'
-  | 'symbol'
   | 'decimals'
   | 'category'
-  | 'subcategory'
   | 'verified'
   | 'priceUsd'
   | 'marketCap'
@@ -1293,14 +1299,10 @@ interface TokenStatRow {
 const TOKEN_STAT_ROW_ICONS: Record<TokenStatRowKey, string> = {
   mint:
     '<svg class="token-stat-row-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
-  symbol:
-    '<svg class="token-stat-row-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>',
   decimals:
     '<svg class="token-stat-row-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><path d="M8 10h.01M12 10h.01M16 10h.01M8 14h8M8 18h5"/></svg>',
   category:
     '<svg class="token-stat-row-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
-  subcategory:
-    '<svg class="token-stat-row-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
   verified:
     '<svg class="token-stat-row-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
   priceUsd:
@@ -1425,7 +1427,6 @@ function renderToken(t: TokenData): void {
     statRowsLayout: 'twoColumn',
     rows: [
       { key: 'mint', label: 'Mint', valueHtml: mintLink || dashTxt },
-      { key: 'symbol', label: 'Symbol', valueHtml: escapeHtmlText(sym || '—') },
       {
         key: 'decimals',
         label: 'Decimals',
@@ -1434,12 +1435,7 @@ function renderToken(t: TokenData): void {
       {
         key: 'category',
         label: 'Category',
-        valueHtml: escapeHtmlText((t.category ?? '').trim() || '—'),
-      },
-      {
-        key: 'subcategory',
-        label: 'Subcategory',
-        valueHtml: escapeHtmlText((t.subcategory ?? '').trim() || '—'),
+        valueHtml: formatCategoryOverviewValueHtml(t.category, t.subcategory),
       },
       {
         key: 'verified',
@@ -1466,12 +1462,18 @@ function renderToken(t: TokenData): void {
       {
         key: 'price1d',
         label: 'Price (1d ago)',
-        valueHtml: t.price1d != null ? formatTokenStatPriceValueHtml(t.price1d) : dashTxt,
+        valueHtml:
+          t.price1d != null
+            ? formatTokenStatPriceValueHtml(t.price1d) + formatHistoricalPricePctVsSpotHtml(t.price, t.price1d)
+            : dashTxt,
       },
       {
         key: 'price7d',
         label: 'Price (7d ago)',
-        valueHtml: t.price7d != null ? formatTokenStatPriceValueHtml(t.price7d) : dashTxt,
+        valueHtml:
+          t.price7d != null
+            ? formatTokenStatPriceValueHtml(t.price7d) + formatHistoricalPricePctVsSpotHtml(t.price, t.price7d)
+            : dashTxt,
       },
     ],
   };
@@ -1520,10 +1522,8 @@ function buildTokenStatsPlaceholderHtml(): string {
     statRowsLayout: 'twoColumn',
     rows: [
       { key: 'mint', label: 'Mint', valueHtml: `<span class="mono">${d}</span>` },
-      { key: 'symbol', label: 'Symbol', valueHtml: d },
       { key: 'decimals', label: 'Decimals', valueHtml: d },
       { key: 'category', label: 'Category', valueHtml: d },
-      { key: 'subcategory', label: 'Subcategory', valueHtml: d },
       { key: 'verified', label: 'Verified', valueHtml: d },
     ],
   };
@@ -2390,6 +2390,20 @@ function formatPctSmart(value: number): string {
   return `${num.toFixed(decimals)}%`;
 }
 
+/**
+ * % vs current USD price with **spot as denominator**: `(spot − historical) / spot × 100`.
+ * Appended after historical price rows when spot is valid.
+ */
+function formatHistoricalPricePctVsSpotHtml(spot: number | undefined, historical: number | undefined): string {
+  if (spot == null || historical == null || !Number.isFinite(spot) || !Number.isFinite(historical) || spot === 0) {
+    return '';
+  }
+  const pct = ((spot - historical) / spot) * 100;
+  const toneClass = pct >= 0 ? 'usd-tone usd-tone--positive' : 'usd-tone usd-tone--negative';
+  const sign = pct >= 0 ? '+' : '';
+  return ` <span class="token-stat-price-pct ${toneClass}">${sign}${formatPctSmart(pct)}</span>`;
+}
+
 function getTraderPnl(row: TokenTopPnlTraderRow): number {
   return toNum(row.realizedPnlUsd);
 }
@@ -2904,7 +2918,8 @@ function renderTradesCountDistributionBars(
   target.innerHTML = groups
     .map((group) => {
       const widthPct = (group.count / maxCount) * 100;
-      const t = Math.max(0, Math.min(1, group.gradientT));
+      /* Invert t so trade-scale fills read red (low count band) → green (high count band) left to right. */
+      const t = Math.max(0, Math.min(1, 1 - group.gradientT));
       return `<div class="token-pnl-bar-row">
         <div class="token-pnl-bar-label">${group.label}</div>
         <div class="token-pnl-bar-track">
@@ -3446,7 +3461,8 @@ function renderTradesCountDistributionVerticalBars(
   target.innerHTML = leftToRightGroups
     .map((group) => {
       const heightPct = (group.count / maxCount) * 100;
-      const t = Math.max(0, Math.min(1, group.gradientT));
+      /* Invert t so trade-scale fills read red (low count band) → green (high count band) left to right. */
+      const t = Math.max(0, Math.min(1, 1 - group.gradientT));
       return `<div class="token-trades-vertical-bar-item">
         <div class="token-trades-vertical-track">
           <div class="token-trades-vertical-fill token-pnl-bar-fill--trade-scale" style="height:${heightPct.toFixed(2)}%; --trade-grad-t:${t.toFixed(4)};"></div>
