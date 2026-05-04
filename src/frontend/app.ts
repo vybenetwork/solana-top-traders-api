@@ -92,29 +92,10 @@ function tradeScaleBarGradientPair(t: number): { dark: string; light: string } {
   };
 }
 
-/** Low-positive PnL end of sweep (yellowish orange); high PnL → green (120°). Must match CSS `--trade-grad-t` span. */
-const PNL_DIST_HUE_GREEN = 120;
-const PNL_DIST_HUE_LOW_POSITIVE = 43;
-const PNL_DIST_HUE_SPAN = PNL_DIST_HUE_GREEN - PNL_DIST_HUE_LOW_POSITIVE;
-
-function pnlDistScaleHue(t: number): number {
-  const clamped = Math.min(1, Math.max(0, t));
-  return PNL_DIST_HUE_GREEN - clamped * PNL_DIST_HUE_SPAN;
-}
-
-/** Volume pie positive bands: same two-stop ramp as PnL dist bars (green → light yellowish orange). */
-function pnlDistBarGradientPair(t: number): { dark: string; light: string } {
-  const h = pnlDistScaleHue(t);
-  return {
-    dark: `hsl(${h} 85% 42%)`,
-    light: `hsl(${h} 92% 60%)`,
-  };
-}
-
 const _volumePnlMergedBandCount = VOLUME_PNL_PIE_MERGED_USD_BANDS.length;
-/** Share-of-volume donut: high-PnL bands → green, low positive → yellow; at/below $0 slice uses {@link VOLUME_PNL_PIE_NONPOSITIVE_FILL}. */
+/** Donut slices: same per-row gradient as trade-count bars (`--trade-scale`). */
 const VOLUME_PNL_PIE_MERGED_SLICE_FILLS: readonly PieSliceSpec[] = Array.from({ length: _volumePnlMergedBandCount }, (_, i) =>
-  _volumePnlMergedBandCount <= 1 ? pnlDistBarGradientPair(0) : pnlDistBarGradientPair(i / (_volumePnlMergedBandCount - 1))
+  _volumePnlMergedBandCount <= 1 ? tradeScaleBarGradientPair(0) : tradeScaleBarGradientPair(i / (_volumePnlMergedBandCount - 1))
 );
 
 function volumePnlPieMergedBandIndex(pnl: number): number | null {
@@ -951,6 +932,86 @@ type WalletPieSlice = {
   avgGainMult?: number | null;
 };
 
+function walletPieLegendUsesAvgRow(pieTitle: string): boolean {
+  const t = pieTitle.toLowerCase();
+  return t.includes('winning') && t.includes('losing');
+}
+
+function walletPieCountUnitWord(pieTitle: string): string {
+  const t = pieTitle.toLowerCase();
+  return t.includes('position') ? 'positions' : 'trades';
+}
+
+/** >1× green/up, ~1× yellow/O, <1× red/down (same ε as gain-ratio grouping). */
+function walletPieAvgGainTone(mult: number): 'up' | 'flat' | 'down' {
+  if (mult > 1 + GAIN_ONE_X_EPS) return 'up';
+  if (mult < 1 - GAIN_ONE_X_EPS) return 'down';
+  return 'flat';
+}
+
+function buildWalletPieAvgGainRow(mult: number | null | undefined): {
+  bodyHtml: string;
+  iconTone: 'up' | 'flat' | 'down' | 'neutral';
+  iconChar: string;
+} {
+  if (mult == null || !Number.isFinite(mult)) {
+    return {
+      bodyHtml: `<span class="token-tier-metric__muted">${escapeHtmlText('—')}</span>`,
+      iconTone: 'neutral',
+      iconChar: '',
+    };
+  }
+  const t = walletPieAvgGainTone(mult);
+  const iconChar = t === 'up' ? '↑' : t === 'down' ? '↓' : 'O';
+  const multClass =
+    t === 'up'
+      ? 'token-tier-wallet-avg-mult token-tier-wallet-avg-mult--up'
+      : t === 'down'
+        ? 'token-tier-wallet-avg-mult token-tier-wallet-avg-mult--down'
+        : 'token-tier-wallet-avg-mult token-tier-wallet-avg-mult--flat';
+  return {
+    bodyHtml: `<span class="${multClass}">${escapeHtmlText(formatGainMultiplierLabel(mult))}</span><span class="token-tier-metric__muted"> Avg</span>`,
+    iconTone: t,
+    iconChar,
+  };
+}
+
+/** One slice card: title + share row + count row + optional avg row (token-tier-card pattern). */
+function walletPieLegendTierCardHtml(opts: {
+  accent: string;
+  swatchBg: string;
+  titleEscaped: string;
+  pctBodyHtml: string;
+  countBodyHtml: string;
+  avgRow: { bodyHtml: string; iconTone: 'up' | 'flat' | 'down' | 'neutral'; iconChar: string } | null;
+  placeholder?: boolean;
+}): string {
+  const ph = opts.placeholder ? ' token-tier-card--placeholder' : '';
+  const avgLi =
+    opts.avgRow != null
+      ? `<li class="token-tier-metric">
+          <span class="token-tier-metric__ico token-tier-metric__ico--pnl token-tier-metric__ico--wallet-avg token-tier-metric__ico--wallet-avg--${opts.avgRow.iconTone}" aria-hidden="true">${opts.avgRow.iconChar}</span>
+          <div class="token-tier-metric__body">${opts.avgRow.bodyHtml}</div>
+        </li>`
+      : '';
+  return `<div class="token-supply-legend-item token-supply-legend-item--tier-dashboard">
+    <article class="token-tier-card token-tier-card--wallet-pie-legend${ph}" style="--tier-accent:${opts.accent}">
+      <h4 class="token-tier-card__title token-tier-card__title--wallet-pie">${opts.titleEscaped}</h4>
+      <ul class="token-tier-card__metrics token-tier-card__metrics--wallet-pie-expanded">
+        <li class="token-tier-metric">
+          <span class="token-tier-metric__ico token-tier-metric__ico--share-swatch" style="--tier-swatch:${opts.swatchBg}" aria-hidden="true"></span>
+          <div class="token-tier-metric__body">${opts.pctBodyHtml}</div>
+        </li>
+        <li class="token-tier-metric">
+          <span class="token-tier-metric__ico token-tier-metric__ico--layers" aria-hidden="true">${TIER_LEGEND_SVG_STACK}</span>
+          <div class="token-tier-metric__body">${opts.countBodyHtml}</div>
+        </li>
+        ${avgLi}
+      </ul>
+    </article>
+  </div>`;
+}
+
 function renderWalletPieCard(title: string, slices: WalletPieSlice[]): string {
   const normalized = slices
     .map((slice) => ({ ...slice, value: Math.max(0, Number(slice.value) || 0) }))
@@ -958,49 +1019,67 @@ function renderWalletPieCard(title: string, slices: WalletPieSlice[]): string {
   const total = normalized.reduce((sum, slice) => sum + slice.value, 0);
   if (total <= 0) {
     const dash = '—';
+    const dashEsc = escapeHtmlText(dash);
     const t = title.toLowerCase();
     const isWinLose = t.includes('winning') || t.includes('losing');
     const isOpenClosed = t.includes('open') && t.includes('closed') && t.includes('position');
     const neutralRing = '#27272a';
+    const neutralAccent = '#52525b';
     const neutralSwatch = '#52525b';
     const emptyBg = buildPieGradientWithGaps([1], [neutralRing]);
     const legendRows = isWinLose || isOpenClosed ? 2 : 3;
-    const legendHtml = Array.from({ length: legendRows }, () => {
-      return `<div class="wallet-pnl-pie-legend-item">
-        <span class="wallet-pnl-pie-legend-swatch" style="background:${neutralSwatch}"></span>
-        <span class="wallet-pnl-pie-legend-label">${dash}</span>
-        <span class="wallet-pnl-pie-legend-meta">${dash} (${dash})</span>
-      </div>`;
-    }).join('');
+    const showAvgPh = walletPieLegendUsesAvgRow(title);
+    const pctPh = `<span class="token-tier-metric__muted">${dashEsc}</span>`;
+    const countPh = `<span class="token-tier-metric__muted">${dashEsc}</span>`;
+    const avgRowPh = showAvgPh
+      ? { bodyHtml: `<span class="token-tier-metric__muted">${dashEsc}</span>`, iconTone: 'neutral' as const, iconChar: '' }
+      : null;
+    const legendHtml = Array.from({ length: legendRows }, () =>
+      walletPieLegendTierCardHtml({
+        accent: neutralAccent,
+        swatchBg: neutralSwatch,
+        titleEscaped: dashEsc,
+        pctBodyHtml: pctPh,
+        countBodyHtml: countPh,
+        avgRow: avgRowPh,
+        placeholder: true,
+      })
+    ).join('');
     return `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--pie">
       <h3 class="token-stats-group-title"><span>${title}</span></h3>
       <div class="wallet-pnl-pie-wrap">
         <div class="wallet-pnl-pie-chart" role="img" aria-label="${title}" style="background:${emptyBg}"></div>
-        <div class="wallet-pnl-pie-legend">${legendHtml}</div>
+        <div class="wallet-pnl-pie-legend token-supply-legend token-supply-legend--tier-dashboard wallet-pnl-pie-legend--tier-match">${legendHtml}</div>
       </div>
     </section>`;
   }
   const pctSlices = normalized.map((slice) => (slice.value / total) * 100);
   const pieGradient = buildPieGradientWithGaps(pctSlices, normalized.map((slice) => slice.color));
+  const unitWord = walletPieCountUnitWord(title);
+  const showAvg = walletPieLegendUsesAvgRow(title);
   const legendHtml = normalized
     .map((slice) => {
       const pct = (slice.value / total) * 100;
-      const avgSuffix =
-        slice.avgGainMult != null && Number.isFinite(slice.avgGainMult)
-          ? ` (${formatGainMultiplierLabel(slice.avgGainMult)} Avg)`
-          : '';
-      return `<div class="wallet-pnl-pie-legend-item">
-        <span class="wallet-pnl-pie-legend-swatch" style="background:${pieSliceLegendBackground(slice.color)}"></span>
-        <span class="wallet-pnl-pie-legend-label">${slice.label}</span>
-        <span class="wallet-pnl-pie-legend-meta">${formatPctSmart(pct)} · ${formatIntFull(slice.value)}${avgSuffix}</span>
-      </div>`;
+      const accent = pieSliceAccentSolid(slice.color);
+      const swatchBg = pieSliceLegendBackground(slice.color);
+      const pctBodyHtml = `<span class="token-tier-metric__slice-pct">${formatPctSmart(pct)}</span><span class="token-tier-metric__muted"> share</span>`;
+      const countBodyHtml = `<span class="token-tier-metric__emph">${formatIntFull(slice.value)}</span><span class="token-tier-metric__muted"> ${unitWord}</span>`;
+      const avgRow = showAvg ? buildWalletPieAvgGainRow(slice.avgGainMult) : null;
+      return walletPieLegendTierCardHtml({
+        accent,
+        swatchBg,
+        titleEscaped: escapeHtmlText(slice.label),
+        pctBodyHtml,
+        countBodyHtml,
+        avgRow,
+      });
     })
     .join('');
   return `<section class="token-stats-group wallet-pnl-card wallet-pnl-card--pie">
     <h3 class="token-stats-group-title"><span>${title}</span></h3>
     <div class="wallet-pnl-pie-wrap">
       <div class="wallet-pnl-pie-chart" role="img" aria-label="${title}" style="background:${pieGradient}"></div>
-      <div class="wallet-pnl-pie-legend">${legendHtml}</div>
+      <div class="wallet-pnl-pie-legend token-supply-legend token-supply-legend--tier-dashboard wallet-pnl-pie-legend--tier-match">${legendHtml}</div>
     </div>
   </section>`;
 }
@@ -1306,7 +1385,8 @@ type TokenStatRowKey =
   | 'price7d'
   | 'supply'
   | 'tokenVol24h'
-  | 'usdVol24h';
+  | 'usdVol24h'
+  | 'topPnlCohortVol';
 
 interface TokenStatRow {
   key: TokenStatRowKey;
@@ -1338,6 +1418,8 @@ const TOKEN_STAT_ROW_ICONS: Record<TokenStatRowKey, string> = {
     '<svg class="token-stat-row-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
   usdVol24h:
     '<svg class="token-stat-row-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>',
+  topPnlCohortVol:
+    '<svg class="token-stat-row-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
 };
 
 interface SectionSpec {
@@ -1345,7 +1427,7 @@ interface SectionSpec {
   title: string;
   theme: 'overview' | 'price' | 'supply';
   rows: TokenStatRow[];
-  /** Overview: flow stat rows in two columns. */
+  /** Overview: two columns (legacy). Omit or use single column (default) for one column × N rows. */
   statRowsLayout?: 'single' | 'twoColumn';
 }
 
@@ -1359,6 +1441,27 @@ function tokenStatRowHtml(row: TokenStatRow): string {
       <span class="token-stat-row-value">${row.valueHtml}</span>
     </div>
   </div>`;
+}
+
+/** Insert `$` immediately before the numeric part (after optional leading − span). */
+function prefixTokenStatUsdDollar(priceHtml: string): string {
+  if (priceHtml.includes('token-stat-price-neg')) {
+    return priceHtml.replace(
+      /^(<span class="token-stat-price-neg">[\s\S]*?<\/span>)/,
+      `$1<span class="token-stat-usd-dollar" aria-hidden="true">$</span>`
+    );
+  }
+  return `<span class="token-stat-usd-dollar" aria-hidden="true">$</span>${priceHtml}`;
+}
+
+/** Wrap token-stat USD amounts (green); use inner HTML from trusted formatters only. */
+function wrapTokenStatUsdHtml(innerHtml: string): string {
+  return `<span class="token-stat-usd-value">${innerHtml}</span>`;
+}
+
+/** Escaped plain text only (already safe). */
+function wrapTokenStatUsdText(escapedPlain: string): string {
+  return `<span class="token-stat-usd-value">${escapedPlain}</span>`;
 }
 
 function tokenStatSectionHtml(s: SectionSpec): string {
@@ -1413,7 +1516,115 @@ async function fetchWithRetry(url: string): Promise<Response> {
   throw lastErr;
 }
 
-function renderToken(t: TokenData): void {
+function parseTokenTopPnlLimitForLabel(): number {
+  const n = Number.parseInt(String(tokenTopPnlLimit.value).trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : 1000;
+}
+
+/** Sum 24h USD volume for each wallet in the main cohort using values from the 1d API fetch (same map as Volume (24h) column). */
+function sumCohortVolume24hUsd(
+  cohortRows: TokenTopPnlTraderRow[],
+  volume24hByTrader: Record<string, number>
+): number {
+  let s = 0;
+  for (const r of cohortRows) {
+    const addr = (r.traderAddress || '').trim();
+    if (!addr) continue;
+    const v = volume24hByTrader[addr];
+    if (v != null && Number.isFinite(v)) s += v;
+  }
+  return s;
+}
+
+/** Same K/M/B breakpoints as {@link formatNum} on token stat USD volumes. */
+function usdVolStatDisplayTier(refAbs: number): 'B' | 'M' | 'K' | 'raw' {
+  const abs = Math.abs(refAbs);
+  if (abs >= 1e9) return 'B';
+  if (abs >= 1e6) return 'M';
+  if (abs >= 1e3) return 'K';
+  return 'raw';
+}
+
+/** Format USD amount in the given tier (cohort + 24h total use the same tier as 24h reference). */
+function formatUsdVolStatAligned(value: number, tier: 'B' | 'M' | 'K' | 'raw'): string {
+  let numPart: string;
+  switch (tier) {
+    case 'B':
+      numPart = (value / 1e9).toFixed(2);
+      break;
+    case 'M':
+      numPart = (value / 1e6).toFixed(2);
+      break;
+    case 'K':
+      numPart = (value / 1e3).toFixed(2);
+      break;
+    default:
+      numPart = value.toFixed(4);
+  }
+  numPart = numPart.replace(/\.?0+$/, '');
+  const suf = tier === 'raw' ? '' : tier;
+  return `${numPart}${suf}`;
+}
+
+/**
+ * Cohort share of 24h USD volume: `(0.4%)` style. For tiny shares (&lt; 0.01%), uses enough
+ * decimals to keep the first significant digits (e.g. 0.000453%).
+ */
+function formatVolumeShareOf24hPctPlain(pct: number): string {
+  if (!Number.isFinite(pct)) return '—';
+  if (pct === 0) return '0%';
+  const abs = Math.abs(pct);
+  if (abs >= 0.01) {
+    return `${pct.toFixed(2).replace(/\.?0+$/, '')}%`;
+  }
+  const decimalsToFirstNonZero = Math.ceil(-Math.log10(abs));
+  const decimals = Math.max(3, Math.min(12, decimalsToFirstNonZero + 2));
+  return `${pct.toFixed(decimals).replace(/\.?0+$/, '')}%`;
+}
+
+function formatCohortVolumeSharePctSuffixHtml(cohortUsd: number, totalUsd: number): string {
+  if (!Number.isFinite(cohortUsd) || !Number.isFinite(totalUsd) || totalUsd <= 0) return '';
+  const pct = (cohortUsd / totalUsd) * 100;
+  if (!Number.isFinite(pct)) return '';
+  const plain = formatVolumeShareOf24hPctPlain(pct);
+  return ` <span class="token-stat-cohort-vol-share">${escapeHtmlText(`(${plain})`)}</span>`;
+}
+
+function formatTopPnlCohortVolRowHtml(t: TokenData, cohortVolume24hUsd: number | undefined): string {
+  const dashTxt = escapeHtmlText('—');
+  const metaN = t.usdValueVolume24h;
+
+  const metaRightHtml =
+    metaN != null && Number.isFinite(metaN)
+      ? (() => {
+          const tier = usdVolStatDisplayTier(metaN);
+          return wrapTokenStatUsdText(
+            escapeHtmlText(`$${formatUsdVolStatAligned(metaN, tier)} USD`)
+          );
+        })()
+      : dashTxt;
+
+  if (cohortVolume24hUsd === undefined) {
+    return `${dashTxt}<span class="token-stat-usd-ratio-sep"> / </span>${metaRightHtml}`;
+  }
+
+  const sum = cohortVolume24hUsd;
+
+  if (metaN != null && Number.isFinite(metaN)) {
+    const tier = usdVolStatDisplayTier(metaN);
+    const left = wrapTokenStatUsdText(escapeHtmlText(`$${formatUsdVolStatAligned(sum, tier)}`));
+    const right = wrapTokenStatUsdText(
+      escapeHtmlText(`$${formatUsdVolStatAligned(metaN, tier)} USD`)
+    );
+    const shareHtml = formatCohortVolumeSharePctSuffixHtml(sum, metaN);
+    return `${left}<span class="token-stat-usd-ratio-sep"> / </span>${right}${shareHtml}`;
+  }
+
+  const tierOnlySum = usdVolStatDisplayTier(sum);
+  return `${wrapTokenStatUsdText(escapeHtmlText(`$${formatUsdVolStatAligned(sum, tierOnlySum)}`))}<span class="token-stat-usd-ratio-sep"> / </span>${dashTxt}`;
+}
+
+function renderToken(t: TokenData, cohortVolume24hUsd?: number): void {
   const tokenLogoSrc = resolveTokenLogoSrc(t.logoUrl, t.mintAddress);
   tokenLogo.src = tokenLogoSrc;
   tokenLogo.alt = t.symbol || '';
@@ -1443,14 +1654,8 @@ function renderToken(t: TokenData): void {
     icon: tokenSectionIcons.overview,
     title: 'Overview',
     theme: 'overview',
-    statRowsLayout: 'twoColumn',
     rows: [
       { key: 'mint', label: 'Mint', valueHtml: mintLink || dashTxt },
-      {
-        key: 'decimals',
-        label: 'Decimals',
-        valueHtml: decVal != null ? escapeHtmlText(String(decVal)) : dashTxt,
-      },
       {
         key: 'category',
         label: 'Category',
@@ -1460,6 +1665,11 @@ function renderToken(t: TokenData): void {
         key: 'verified',
         label: 'Verified',
         valueHtml: t.verified != null ? escapeHtmlText(String(t.verified)) : dashTxt,
+      },
+      {
+        key: 'decimals',
+        label: 'Decimals',
+        valueHtml: decVal != null ? escapeHtmlText(String(decVal)) : dashTxt,
       },
     ],
   };
@@ -1471,19 +1681,26 @@ function renderToken(t: TokenData): void {
       {
         key: 'priceUsd',
         label: 'Price (USD)',
-        valueHtml: t.price != null ? formatTokenStatPriceValueHtml(t.price, { usdSuffix: true }) : dashTxt,
+        valueHtml:
+          t.price != null
+            ? wrapTokenStatUsdHtml(prefixTokenStatUsdDollar(formatTokenStatPriceValueHtml(t.price, { usdSuffix: true })))
+            : dashTxt,
       },
       {
         key: 'marketCap',
         label: 'Market cap',
-        valueHtml: t.marketCap != null ? escapeHtmlText(`${formatNum(t.marketCap)} USD`) : dashTxt,
+        valueHtml:
+          t.marketCap != null
+            ? wrapTokenStatUsdText(escapeHtmlText(`$${formatNum(t.marketCap)} USD`))
+            : dashTxt,
       },
       {
         key: 'price1d',
-        label: 'Price (1d ago)',
+        label: 'Price (24h ago)',
         valueHtml:
           t.price1d != null
-            ? formatTokenStatPriceValueHtml(t.price1d) + formatHistoricalPricePctVsSpotHtml(t.price, t.price1d)
+            ? wrapTokenStatUsdHtml(prefixTokenStatUsdDollar(formatTokenStatPriceValueHtml(t.price1d))) +
+              formatHistoricalPricePctVsSpotHtml(t.price, t.price1d, '24hr')
             : dashTxt,
       },
       {
@@ -1491,7 +1708,8 @@ function renderToken(t: TokenData): void {
         label: 'Price (7d ago)',
         valueHtml:
           t.price7d != null
-            ? formatTokenStatPriceValueHtml(t.price7d) + formatHistoricalPricePctVsSpotHtml(t.price, t.price7d)
+            ? wrapTokenStatUsdHtml(prefixTokenStatUsdDollar(formatTokenStatPriceValueHtml(t.price7d))) +
+              formatHistoricalPricePctVsSpotHtml(t.price, t.price7d, '7d')
             : dashTxt,
       },
     ],
@@ -1521,13 +1739,25 @@ function renderToken(t: TokenData): void {
         key: 'usdVol24h',
         label: 'USD volume (24h)',
         valueHtml:
-          t.usdValueVolume24h != null ? escapeHtmlText(`${formatNum(t.usdValueVolume24h)} USD`) : dashTxt,
+          t.usdValueVolume24h != null && Number.isFinite(t.usdValueVolume24h)
+            ? wrapTokenStatUsdText(
+                escapeHtmlText(
+                  `$${formatUsdVolStatAligned(t.usdValueVolume24h, usdVolStatDisplayTier(t.usdValueVolume24h))} USD`
+                )
+              )
+            : dashTxt,
+      },
+      {
+        key: 'topPnlCohortVol',
+        label: `Top ${parseTokenTopPnlLimitForLabel().toLocaleString('en-US')} by PnL volume (24h)`,
+        valueHtml: formatTopPnlCohortVolRowHtml(t, cohortVolume24hUsd),
       },
     ],
   };
 
   tokenLastUpdatedValue.textContent = formatTokenUpdateTime(t.updateTime);
-  tokenStats.innerHTML = `<div class="token-stats-row token-stats-row--split-overview"><div class="token-stats-col token-stats-col--overview">${tokenStatSectionHtml(overview)}</div><div class="token-stats-col token-stats-col--pair"><div class="token-stats-pair-grid">${tokenStatSectionHtml(priceSection)}${tokenStatSectionHtml(supplyVolumeSection)}</div></div></div>`;
+  const statsMain = `<div class="token-stats-row token-stats-row--split-overview"><div class="token-stats-col token-stats-col--overview">${tokenStatSectionHtml(overview)}</div><div class="token-stats-col token-stats-col--pair"><div class="token-stats-pair-grid">${tokenStatSectionHtml(priceSection)}${tokenStatSectionHtml(supplyVolumeSection)}</div></div></div>`;
+  tokenStats.innerHTML = statsMain;
 }
 
 /** Same sections/labels as `renderToken`, values shown as em dash until data loads. */
@@ -1538,12 +1768,11 @@ function buildTokenStatsPlaceholderHtml(): string {
     icon: tokenSectionIcons.overview,
     title: 'Overview',
     theme: 'overview',
-    statRowsLayout: 'twoColumn',
     rows: [
       { key: 'mint', label: 'Mint', valueHtml: `<span class="mono">${d}</span>` },
-      { key: 'decimals', label: 'Decimals', valueHtml: d },
       { key: 'category', label: 'Category', valueHtml: d },
       { key: 'verified', label: 'Verified', valueHtml: d },
+      { key: 'decimals', label: 'Decimals', valueHtml: d },
     ],
   };
   const priceSection: SectionSpec = {
@@ -1553,7 +1782,7 @@ function buildTokenStatsPlaceholderHtml(): string {
     rows: [
       { key: 'priceUsd', label: 'Price (USD)', valueHtml: d },
       { key: 'marketCap', label: 'Market cap', valueHtml: d },
-      { key: 'price1d', label: 'Price (1d ago)', valueHtml: d },
+      { key: 'price1d', label: 'Price (24h ago)', valueHtml: d },
       { key: 'price7d', label: 'Price (7d ago)', valueHtml: d },
     ],
   };
@@ -1565,9 +1794,15 @@ function buildTokenStatsPlaceholderHtml(): string {
       { key: 'supply', label: 'Current supply', valueHtml: d },
       { key: 'tokenVol24h', label: 'Token volume (24h)', valueHtml: d },
       { key: 'usdVol24h', label: 'USD volume (24h)', valueHtml: d },
+      {
+        key: 'topPnlCohortVol',
+        label: `Top ${parseTokenTopPnlLimitForLabel().toLocaleString('en-US')} by PnL volume (24h)`,
+        valueHtml: d,
+      },
     ],
   };
-  return `<div class="token-stats-row token-stats-row--split-overview"><div class="token-stats-col token-stats-col--overview">${tokenStatSectionHtml(overview)}</div><div class="token-stats-col token-stats-col--pair"><div class="token-stats-pair-grid">${tokenStatSectionHtml(priceSection)}${tokenStatSectionHtml(supplyVolumeSection)}</div></div></div>`;
+  const statsMain = `<div class="token-stats-row token-stats-row--split-overview"><div class="token-stats-col token-stats-col--overview">${tokenStatSectionHtml(overview)}</div><div class="token-stats-col token-stats-col--pair"><div class="token-stats-pair-grid">${tokenStatSectionHtml(priceSection)}${tokenStatSectionHtml(supplyVolumeSection)}</div></div></div>`;
+  return statsMain;
 }
 
 function buildWalletTopTraderParams(mode: SearchMode, query: string): URLSearchParams {
@@ -2410,18 +2645,32 @@ function formatPctSmart(value: number): string {
   return `${num.toFixed(decimals)}%`;
 }
 
+type HistoricalPricePctPeriod = '24hr' | '7d';
+
 /**
  * % vs current USD price with **spot as denominator**: `(spot − historical) / spot × 100`.
- * Appended after historical price rows when spot is valid.
+ * Appended after historical price rows when spot is valid; arrow + period label after the %.
  */
-function formatHistoricalPricePctVsSpotHtml(spot: number | undefined, historical: number | undefined): string {
+function formatHistoricalPricePctVsSpotHtml(
+  spot: number | undefined,
+  historical: number | undefined,
+  period: HistoricalPricePctPeriod
+): string {
   if (spot == null || historical == null || !Number.isFinite(spot) || !Number.isFinite(historical) || spot === 0) {
     return '';
   }
   const pct = ((spot - historical) / spot) * 100;
-  const toneClass = pct >= 0 ? 'usd-tone usd-tone--positive' : 'usd-tone usd-tone--negative';
-  const sign = pct >= 0 ? '+' : '';
-  return ` <span class="token-stat-price-pct ${toneClass}">${sign}${formatPctSmart(pct)}</span>`;
+  const toneClass =
+    pct > 0 ? 'usd-tone usd-tone--positive' : pct < 0 ? 'usd-tone usd-tone--negative' : 'usd-tone usd-tone--neutral';
+  const sign = pct > 0 ? '+' : '';
+  const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '';
+  const pctSpan = `<span class="token-stat-price-pct ${toneClass}">${sign}${formatPctSmart(pct)}</span>`;
+  const arrowSpan = arrow
+    ? `<span class="token-stat-price-pct-arrow ${toneClass}" aria-hidden="true">${arrow}</span>`
+    : '';
+  const periodSpan = `<span class="token-stat-price-pct-period">${escapeHtmlText(period)}</span>`;
+  const meta = `<span class="token-stat-price-pct-meta">${arrowSpan}${periodSpan}</span>`;
+  return ` ${pctSpan}${meta}`;
 }
 
 function getTraderPnl(row: TokenTopPnlTraderRow): number {
@@ -3599,6 +3848,11 @@ async function loadData(): Promise<void> {
           trades24hByTrader[addr] = toNum(row.tradesCount);
         });
         renderTokenTopPnlTraders(tokenTopPnlData, query, tokenTopPnlParams, volume24hByTrader, trades24hByTrader);
+
+        if (tokenData) {
+          const cohortVol24hSum = sumCohortVolume24hUsd(tokenTopPnlData.data ?? [], volume24hByTrader);
+          renderToken(tokenData, cohortVol24hSum);
+        }
 
         const chartLimit = Math.max(10, Math.min(1000, Number(tokenTopPnlLimit.value) || 1000));
         renderTopTraderSelectedResolutionCharts(tokenTopPnlData.data ?? [], chartLimit);

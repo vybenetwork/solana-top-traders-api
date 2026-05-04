@@ -861,6 +861,35 @@ button:active {
   word-break: break-word;
 }
 
+/* USD amounts in token stats (price, market cap, volumes, cohort row) */
+.token-section-content .token-stat-usd-value {
+  color: #4ade80;
+  font-weight: 450;
+}
+
+.token-section-content .token-stat-usd-value .token-stat-row-price-num,
+.token-section-content .token-stat-usd-value .token-stat-price-neg,
+.token-section-content .token-stat-usd-value .token-stat-usd-dollar,
+.token-section-content .token-stat-usd-value .token-stat-price-suffix,
+.token-section-content .token-stat-usd-value .token-price-zero-run {
+  color: inherit;
+  font-weight: inherit;
+}
+
+.token-section-content .token-stat-usd-ratio-sep {
+  color: #71717a;
+  font-weight: 450;
+}
+
+.token-section-content .token-stat-cohort-vol-share {
+  margin-left: 0.15em;
+  font-size: 0.85em;
+  font-weight: 450;
+  color: #a1a1aa;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .token-section-content .token-stat-row-price-num {
   font-weight: 450;
   color: #d4d4d8;
@@ -940,6 +969,27 @@ button:active {
   margin-left: 0.25em;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.token-section-content .token-stat-price-pct-meta {
+  margin-left: 0.35em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.22em;
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  vertical-align: baseline;
+}
+
+.token-section-content .token-stat-price-pct-arrow {
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.token-section-content .token-stat-price-pct-period {
+  color: #94a3b8;
+  font-weight: 550;
 }
 
 .token-section-content .token-stat-row--verified {
@@ -1030,6 +1080,17 @@ button:active {
   background: rgba(22, 163, 74, 0.12);
 }
 
+.token-section-content .token-stat-row--topPnlCohortVol {
+  border-color: rgba(52, 211, 153, 0.32);
+  background: linear-gradient(165deg, rgba(16, 185, 129, 0.1), rgba(0, 0, 0, 0.26));
+}
+
+.token-section-content .token-stat-row--topPnlCohortVol .token-stat-row-icon {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(5, 150, 105, 0.14);
+}
+
 .token-stats-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1037,9 +1098,9 @@ button:active {
   align-items: stretch;
 }
 
-/* Token stats: 50% overview | 50% price + supply (two columns inside right half) */
+/* Token stats: narrow overview | price + supply (pair column). */
 .token-stats-row.token-stats-row--split-overview {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 26%) minmax(0, 74%);
   align-items: stretch;
 }
 
@@ -1064,7 +1125,7 @@ button:active {
 
 .token-stats-pair-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 56%);
   gap: 0.65rem;
   min-width: 0;
   flex: 1 1 auto;
@@ -1620,6 +1681,52 @@ button:active {
   border: 1px solid rgba(74, 222, 128, 0.22);
 }
 
+/* Wallet pie avg row: ↑ / O / ↓ in icon box; mult color matches */
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg {
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg--up {
+  background: rgba(74, 222, 128, 0.16);
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.38);
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg--flat {
+  background: rgba(234, 179, 8, 0.14);
+  color: #eab308;
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg--down {
+  background: rgba(248, 113, 113, 0.14);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.38);
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-metric__ico--wallet-avg--neutral {
+  background: rgba(113, 113, 122, 0.12);
+  color: #71717a;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-wallet-avg-mult--up {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-wallet-avg-mult--flat {
+  color: #eab308;
+  font-weight: 600;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-wallet-avg-mult--down {
+  color: #f87171;
+  font-weight: 600;
+}
+
 .token-tier-metric__ico--usd {
   background: rgba(134, 239, 172, 0.1);
   color: #86efac;
@@ -1705,11 +1812,6 @@ button:active {
   color: #e0f2fe;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-}
-
-/* Dashboard tier cards set --tier-accent from pie slice; match Total volume / Total trades numerator to segment. */
-.token-tier-card .token-tier-metric__vol-pnl-slice-val {
-  color: var(--tier-accent, #e0f2fe);
 }
 
 .token-tier-metric__vol-pnl-totalvol-suffix {
@@ -2004,12 +2106,12 @@ button:active {
   );
 }
 
-/* PnL distribution: green (high PnL) → light yellowish orange at low-positive end (~hue 43°). Span 77 must match app.ts PNL_DIST_HUE_SPAN. */
+/* PnL distribution bars only: green → yellow at low-positive-PnL end (hue 60°). Same saturation/lightness stops as trade-scale. */
 .token-pnl-bar-fill--trade-scale-pnl-dist {
   background: linear-gradient(
     90deg,
-    hsl(calc(120 - (var(--trade-grad-t, 0) * 77)) 85% 42%),
-    hsl(calc(120 - (var(--trade-grad-t, 0) * 77)) 92% 60%)
+    hsl(calc(120 - (var(--trade-grad-t, 0) * 60)) 85% 42%),
+    hsl(calc(120 - (var(--trade-grad-t, 0) * 60)) 92% 60%)
   );
 }
 
@@ -2094,7 +2196,7 @@ button:active {
 
 /* PnL distribution: label + count match bar hue (--trade-grad-t same as fill); black outline for contrast. */
 .token-trades-vertical-label.token-pnl-dist-band-text {
-  color: hsl(calc(120 - (var(--trade-grad-t, 0) * 77)) 88% 56%);
+  color: hsl(calc(120 - (var(--trade-grad-t, 0) * 60)) 88% 54%);
   text-shadow:
     -1px -1px 0 #0a0a0a,
     1px -1px 0 #0a0a0a,
@@ -2487,42 +2589,41 @@ button:active {
   pointer-events: none;
 }
 
-.wallet-pnl-pie-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.wallet-pnl-pie-legend-item {
+/* Wallet donut legends: 1 row × 2 columns; each cell is a tier-card with stacked metrics */
+.wallet-pnl-pie-legend.wallet-pnl-pie-legend--tier-match {
   display: grid;
-  grid-template-columns: 11px 1fr auto;
-  align-items: center;
-  gap: 0.5rem 0.7rem;
-  font-size: 0.8125rem;
-  line-height: 1.4;
-}
-
-.wallet-pnl-pie-legend-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
-  flex-shrink: 0;
-}
-
-.wallet-pnl-pie-legend-label {
-  color: #a1a1aa;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 0.65rem;
+  row-gap: 0.55rem;
+  align-items: stretch;
   min-width: 0;
+  font-size: 0.72rem;
 }
 
-.wallet-pnl-pie-legend-meta {
-  color: #94a3b8;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.78rem;
-  white-space: nowrap;
+.wallet-pnl-pie-legend--tier-match .token-supply-legend-item {
+  align-items: stretch;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-card--wallet-pie-legend {
+  padding: 0.48rem 0.55rem 0.52rem;
+  height: 100%;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-card__title--wallet-pie {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.wallet-pnl-pie-legend--tier-match .token-tier-card__metrics--wallet-pie-expanded {
+  gap: 0.32rem;
+}
+
+@media (max-width: 520px) {
+  .wallet-pnl-pie-legend.wallet-pnl-pie-legend--tier-match {
+    grid-template-columns: 1fr;
+  }
 }
 
 .wallet-pnl-pie-empty {
