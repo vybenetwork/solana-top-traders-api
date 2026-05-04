@@ -2130,7 +2130,7 @@ function setTradeTierDashboardMeta(titleResolution: string, resolutionLabel: str
     tokenTradeTierFooterScope.textContent = `Top ${lim} (${resolutionLabel}). Trade-share pie and tier bars on this card; volume donut and PnL bars in the card below.`;
   }
   if (tokenSupplyCardDescPnl) {
-    tokenSupplyCardDescPnl.textContent = `Traders per realized PnL band (top ${lim}, ${resolutionLabel}).`;
+    tokenSupplyCardDescPnl.textContent = `Traders per realized PnL band (top ${lim}, ${resolutionLabel}). Positive bands: green → yellow by amount. A red < $0 column appears only when some traders have negative realized PnL.`;
   }
   if (tokenSupplyCardDescTradesVertical) {
     tokenSupplyCardDescTradesVertical.textContent = `Traders per trade-count band (top ${lim}; same tiers as the pie).`;
@@ -2342,12 +2342,13 @@ function applyTokenModeChartsPlaceholder(): void {
     const dash = '—';
     return `<div class="token-trades-vertical-bar-item">
         <div class="token-trades-vertical-track">
-          <div class="token-trades-vertical-fill token-pnl-bar-fill--trade-scale" style="height:0%; --trade-grad-t:${t.toFixed(4)};"></div>
+          <div class="token-trades-vertical-fill token-pnl-bar-fill--trade-scale-pnl-dist" style="height:0%; --trade-grad-t:${t.toFixed(4)};"></div>
           <span class="token-trades-vertical-count">${dash}</span>
         </div>
-        <div class="token-trades-vertical-label">${dash}</div>
+        <div class="token-trades-vertical-label token-pnl-dist-band-text" style="--trade-grad-t:${t.toFixed(4)}">${dash}</div>
       </div>`;
   }).join('');
+  syncPnlDistributionBarsGrid(false);
 
   syncTokenSupplySectionHeadingsForResolution();
 
@@ -2361,7 +2362,7 @@ function applyTokenModeChartsPlaceholder(): void {
           <div class="token-trades-vertical-fill token-pnl-bar-fill--trade-scale" style="height:0%; --trade-grad-t:${t.toFixed(4)};"></div>
           <span class="token-trades-vertical-count">${dash}</span>
         </div>
-        <div class="token-trades-vertical-label">${dash}</div>
+        <div class="token-trades-vertical-label token-trades-count-dist-band-text" style="--trade-grad-t:${t.toFixed(4)}">${dash}</div>
       </div>`;
     }).join('');
   } else {
@@ -2860,6 +2861,11 @@ function mountDonutPieOverlays(
   mountDonutPieCenterHub(pieEl, hub);
 }
 
+function syncPnlDistributionBarsGrid(hasNegativeColumn: boolean): void {
+  tokenPnlBarsTotal.classList.remove('token-trades-vertical-bars--cols8', 'token-trades-vertical-bars--cols9');
+  tokenPnlBarsTotal.classList.add(hasNegativeColumn ? 'token-trades-vertical-bars--cols9' : 'token-trades-vertical-bars--cols8');
+}
+
 function renderPnlDistributionBars(
   rows: TokenTopPnlTraderRow[],
   topLimit: number,
@@ -2877,6 +2883,7 @@ function renderPnlDistributionBars(
     return;
   }
 
+  const negativeCount = values.filter((pnl) => pnl < 0).length;
   const positiveValues = values.filter((pnl) => pnl > 0);
   const n = CANONICAL_POSITIVE_PNL_DIST_USD_BANDS.length;
   const groups = CANONICAL_POSITIVE_PNL_DIST_USD_BANDS.map((band, i) => ({
@@ -2885,21 +2892,42 @@ function renderPnlDistributionBars(
     gradientT: n <= 1 ? 1 : 1 - i / (n - 1),
   }));
 
-  const leftToRightGroups = [...groups].reverse();
-  const maxCount = Math.max(1, ...leftToRightGroups.map((g) => g.count));
-  target.innerHTML = leftToRightGroups
+  const leftToRightPositive = [...groups].reverse();
+  const maxCount = Math.max(
+    1,
+    ...(negativeCount > 0 ? [negativeCount] : []),
+    ...leftToRightPositive.map((g) => g.count)
+  );
+
+  const negativeHeightPct = negativeCount > 0 ? (negativeCount / maxCount) * 100 : 0;
+  const negativeColumn =
+    negativeCount > 0
+      ? `<div class="token-trades-vertical-bar-item">
+        <div class="token-trades-vertical-track">
+          <div class="token-trades-vertical-fill token-pnl-bar-fill--negative" style="height:${negativeHeightPct.toFixed(2)}%;"></div>
+          <span class="token-trades-vertical-count">${negativeCount}</span>
+        </div>
+        <div class="token-trades-vertical-label token-pnl-dist-band-text token-pnl-dist-band-text--negative">&lt; $0</div>
+      </div>`
+      : '';
+
+  const positiveColumns = leftToRightPositive
     .map((group) => {
       const heightPct = (group.count / maxCount) * 100;
-      const t = Math.max(0, Math.min(1, group.gradientT));
+      /** Far left = yellow (smallest positive band), far right = green (largest band): invert trade-scale t. */
+      const t = Math.max(0, Math.min(1, 1 - group.gradientT));
       return `<div class="token-trades-vertical-bar-item">
         <div class="token-trades-vertical-track">
-          <div class="token-trades-vertical-fill token-pnl-bar-fill--trade-scale" style="height:${heightPct.toFixed(2)}%; --trade-grad-t:${t.toFixed(4)};"></div>
+          <div class="token-trades-vertical-fill token-pnl-bar-fill--trade-scale-pnl-dist" style="height:${heightPct.toFixed(2)}%; --trade-grad-t:${t.toFixed(4)};"></div>
           <span class="token-trades-vertical-count">${group.count}</span>
         </div>
-        <div class="token-trades-vertical-label">${group.label}</div>
+        <div class="token-trades-vertical-label token-pnl-dist-band-text" style="--trade-grad-t:${t.toFixed(4)}">${group.label}</div>
       </div>`;
     })
     .join('');
+
+  target.innerHTML = negativeColumn + positiveColumns;
+  syncPnlDistributionBarsGrid(negativeCount > 0);
 }
 
 function renderTradesCountDistributionBars(
@@ -2918,8 +2946,7 @@ function renderTradesCountDistributionBars(
   target.innerHTML = groups
     .map((group) => {
       const widthPct = (group.count / maxCount) * 100;
-      /* Invert t so trade-scale fills read red (low count band) → green (high count band) left to right. */
-      const t = Math.max(0, Math.min(1, 1 - group.gradientT));
+      const t = Math.max(0, Math.min(1, group.gradientT));
       return `<div class="token-pnl-bar-row">
         <div class="token-pnl-bar-label">${group.label}</div>
         <div class="token-pnl-bar-track">
@@ -3461,14 +3488,13 @@ function renderTradesCountDistributionVerticalBars(
   target.innerHTML = leftToRightGroups
     .map((group) => {
       const heightPct = (group.count / maxCount) * 100;
-      /* Invert t so trade-scale fills read red (low count band) → green (high count band) left to right. */
-      const t = Math.max(0, Math.min(1, 1 - group.gradientT));
+      const t = Math.max(0, Math.min(1, group.gradientT));
       return `<div class="token-trades-vertical-bar-item">
         <div class="token-trades-vertical-track">
           <div class="token-trades-vertical-fill token-pnl-bar-fill--trade-scale" style="height:${heightPct.toFixed(2)}%; --trade-grad-t:${t.toFixed(4)};"></div>
           <span class="token-trades-vertical-count">${group.count}</span>
         </div>
-        <div class="token-trades-vertical-label">${group.label}</div>
+        <div class="token-trades-vertical-label token-trades-count-dist-band-text" style="--trade-grad-t:${t.toFixed(4)}">${group.label}</div>
       </div>`;
     })
     .join('');

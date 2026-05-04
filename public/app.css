@@ -1999,6 +1999,19 @@ button:active {
   );
 }
 
+/* PnL distribution bars only: green → yellow at low-positive-PnL end (hue 60°). Same saturation/lightness stops as trade-scale. */
+.token-pnl-bar-fill--trade-scale-pnl-dist {
+  background: linear-gradient(
+    90deg,
+    hsl(calc(120 - (var(--trade-grad-t, 0) * 60)) 85% 42%),
+    hsl(calc(120 - (var(--trade-grad-t, 0) * 60)) 92% 60%)
+  );
+}
+
+.token-trades-vertical-bars--cols9 {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+}
+
 .token-pnl-bar-count {
   position: absolute;
   right: 8px;
@@ -2072,6 +2085,50 @@ button:active {
   color: #d4d4d8;
   text-align: center;
   word-break: break-word;
+}
+
+/* PnL distribution: label + count match bar hue (--trade-grad-t same as fill); black outline for contrast. */
+.token-trades-vertical-label.token-pnl-dist-band-text {
+  color: hsl(calc(120 - (var(--trade-grad-t, 0) * 60)) 88% 54%);
+  text-shadow:
+    -1px -1px 0 #0a0a0a,
+    1px -1px 0 #0a0a0a,
+    -1px 1px 0 #0a0a0a,
+    1px 1px 0 #0a0a0a,
+    0 -1px 0 #0a0a0a,
+    0 1px 0 #0a0a0a,
+    -1px 0 0 #0a0a0a,
+    1px 0 0 #0a0a0a,
+    0 0 3px rgba(0, 0, 0, 0.85);
+}
+
+.token-trades-vertical-label.token-pnl-dist-band-text--negative {
+  color: #f87171;
+  text-shadow:
+    -1px -1px 0 #0a0a0a,
+    1px -1px 0 #0a0a0a,
+    -1px 1px 0 #0a0a0a,
+    1px 1px 0 #0a0a0a,
+    0 -1px 0 #0a0a0a,
+    0 1px 0 #0a0a0a,
+    -1px 0 0 #0a0a0a,
+    1px 0 0 #0a0a0a,
+    0 0 3px rgba(0, 0, 0, 0.85);
+}
+
+/* Trades-count vertical bars: same hue as .token-pnl-bar-fill--trade-scale (green → red span). */
+.token-trades-vertical-label.token-trades-count-dist-band-text {
+  color: hsl(calc(120 - (var(--trade-grad-t, 0) * 120)) 88% 53%);
+  text-shadow:
+    -1px -1px 0 #0a0a0a,
+    1px -1px 0 #0a0a0a,
+    -1px 1px 0 #0a0a0a,
+    1px 1px 0 #0a0a0a,
+    0 -1px 0 #0a0a0a,
+    0 1px 0 #0a0a0a,
+    -1px 0 0 #0a0a0a,
+    1px 0 0 #0a0a0a,
+    0 0 3px rgba(0, 0, 0, 0.85);
 }
 
 .meta {
