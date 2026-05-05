@@ -1857,6 +1857,16 @@ button:active {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Total volume / Total trades: label + primary figure use the card’s tier accent (same as left rail). */
+.token-tier-card .token-tier-metric--total .token-tier-metric__label {
+  color: var(--tier-accent, #7dd3fc);
+  font-weight: 700;
+}
+
+.token-tier-card .token-tier-metric--total .token-tier-metric__vol-pnl-slice-val {
+  color: var(--tier-accent, #e0f2fe);
+}
+
 /* Allow donut % labels to extend past card bounds (base card uses overflow: hidden). */
 .token-supply-card--trade-tier-dash {
   overflow: visible;
