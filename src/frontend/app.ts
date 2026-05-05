@@ -1992,8 +1992,8 @@ function renderWalletPnl(
     const win = Math.max(0, Math.round(Number(mergedSummary.winningTradesCount) || 0));
     const lose = Math.max(0, Math.round(Number(mergedSummary.losingTradesCount) || 0));
     return [
-      { label: 'Winning', value: win, color: tradeScaleBarGradientPair(0), avgGainMult: winAvgGainMult },
-      { label: 'Losing', value: lose, color: VOLUME_PNL_PIE_NONPOSITIVE_FILL, avgGainMult: loseAvgGainMult },
+      { label: 'Winning Trades', value: win, color: tradeScaleBarGradientPair(0), avgGainMult: winAvgGainMult },
+      { label: 'Losing Trades', value: lose, color: VOLUME_PNL_PIE_NONPOSITIVE_FILL, avgGainMult: loseAvgGainMult },
     ];
   })();
 
