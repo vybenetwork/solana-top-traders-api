@@ -351,6 +351,45 @@ function setSearchMode(mode: SearchMode): void {
   localStorage.setItem(SEARCH_MODE_KEY, mode);
 }
 
+function firstNonEmptySearchParam(params: URLSearchParams, keys: string[]): string {
+  for (const key of keys) {
+    const value = (params.get(key) || '').trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+/** URL can force mode via `mode=token|wallet`, or implicitly via token/wallet query params. */
+function initSearchModeFromUrlParams(): void {
+  const params = new URLSearchParams(window.location.search);
+  const modeParam = (params.get('mode') || '').trim().toLowerCase();
+  const tokenQuery = firstNonEmptySearchParam(params, ['mintAddress', 'mint', 'token']);
+  const walletQuery = firstNonEmptySearchParam(params, [
+    'walletAddress',
+    'wallet',
+    'ownerAddress',
+    'address',
+    'ilikeFilter',
+    'query',
+  ]);
+
+  let nextMode: SearchMode | null = null;
+  if (modeParam === 'token' || modeParam === 'wallet') {
+    nextMode = modeParam;
+  } else if (tokenQuery) {
+    nextMode = 'token';
+  } else if (walletQuery) {
+    nextMode = 'wallet';
+  }
+  if (!nextMode) return;
+
+  setSearchMode(nextMode);
+  const inputQuery = nextMode === 'token' ? tokenQuery : walletQuery;
+  if (inputQuery) {
+    mintInput.value = inputQuery;
+  }
+}
+
 function applySearchModeUI(): void {
   const mode = getSearchMode();
   const tokenMode = mode === 'token';
@@ -3941,7 +3980,7 @@ syncTokenSupplySectionHeadingsForResolution();
 lastTokenResolutionBeforeWalletSwitch = normalizeTokenResolution(tokenTopPnlResolution.value);
 walletTopTradersResolution.value = getWalletResolution();
 applyWalletTopTradersTitle();
-setSearchMode(getSearchMode());
+initSearchModeFromUrlParams();
 applySearchModeUI();
 applySelectedTradesVerticalRowVisibility();
 topTradersMeta.hidden = true;
