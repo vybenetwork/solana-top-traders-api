@@ -44,7 +44,7 @@ body {
 }
 
 .container {
-  max-width: 1120px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
@@ -2680,10 +2680,26 @@ button:active {
   padding-top: 0.1rem;
 }
 
-/* Wallet donuts: reuse token-mode `.token-supply-pie` so slice labels + hub match volume/trade-tier pies. */
+/* Wallet donuts: reuse token-mode `.token-supply-pie` (labels + hub). Default: same vw clamps as top-traders repo. */
 .wallet-pnl-pie-chart.token-supply-pie {
   width: clamp(150px, 18vw, 210px);
   flex-shrink: 0;
+}
+
+/* Narrow main column (e.g. 900px container): vw is viewport-wide so donuts look huge — tie size to the pie card instead. */
+@supports (width: 1cqw) {
+  .wallet-pnl-card.wallet-pnl-card--pie {
+    container-type: inline-size;
+  }
+
+  .wallet-pnl-pie-wrap {
+    grid-template-columns: minmax(0, min(32cqw, 9.875rem)) minmax(0, 1fr);
+  }
+
+  .wallet-pnl-pie-chart.token-supply-pie {
+    width: min(30cqw, 9.875rem);
+    max-width: 100%;
+  }
 }
 
 .wallet-pnl-card.wallet-pnl-card--pie {
