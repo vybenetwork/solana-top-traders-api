@@ -10,37 +10,21 @@
   /* Positive realized-PnL distribution bars only (`--positive`). */
   --token-pnl-positive-from: #16a34a;
   --token-pnl-positive-to: #4ade80;
-
-  /* Vybe-inspired marketing accents (vybenetwork.com) */
-  --vybe-bg-deep: #070708;
-  --vybe-surface: #0f1014;
-  --vybe-border: rgba(255, 255, 255, 0.08);
-  --vybe-accent: #22d3ee;
-  --vybe-accent-soft: rgba(34, 211, 238, 0.14);
-  --vybe-text-muted: #a1a1aa;
 }
 
 html {
   overflow-x: auto;
 }
 
-/* Wallet-only build: legacy token analytics DOM kept for script hooks but never shown */
-#tokenSection,
-#tokenSupplyPanelTotal,
-#tokenTopPnlSection {
-  display: none !important;
-}
-
 body {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   margin: 0;
-  padding: 1.25rem 1rem 2rem;
-  background: radial-gradient(1200px 600px at 15% -10%, rgba(34, 211, 238, 0.08), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(56, 189, 248, 0.06), transparent 50%), var(--vybe-bg-deep);
+  padding: 1rem;
+  background: #0f0f12;
   color: #e4e4e7;
   min-height: 100vh;
   /* Lock desktop-style layouts site-wide; narrow viewports scroll horizontally. */
-  min-width: 920px;
+  min-width: 1100px;
 }
 
 .container {
@@ -48,81 +32,22 @@ body {
   margin: 0 auto;
 }
 
-.site-header {
-  margin-bottom: 1.75rem;
-  padding: 1.35rem 1.5rem 1.25rem;
-  border-radius: 14px;
-  border: 1px solid var(--vybe-border);
-  background: linear-gradient(165deg, rgba(22, 24, 30, 0.95) 0%, rgba(10, 11, 14, 0.98) 100%);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 48px rgba(0, 0, 0, 0.45);
-  position: relative;
-  overflow: hidden;
+header {
+  margin-bottom: 2rem;
 }
 
-.site-header::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  border-radius: 14px 0 0 14px;
-  background: linear-gradient(180deg, var(--vybe-accent), #38bdf8);
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
 }
 
-.site-header__brand {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin-bottom: 0.65rem;
-}
-
-.site-header__logo {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: #f4f4f5;
-}
-
-.site-header__badge {
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--vybe-accent);
-  padding: 0.18rem 0.45rem;
-  border-radius: 999px;
-  border: 1px solid rgba(34, 211, 238, 0.35);
-  background: var(--vybe-accent-soft);
-}
-
-.site-header__title {
-  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.45rem;
-  line-height: 1.2;
-  color: #fafafa;
-}
-
-.site-header__subtitle {
-  margin: 0;
-  max-width: 52ch;
-  font-size: 0.82rem;
-  line-height: 1.55;
-  color: var(--vybe-text-muted);
-  font-weight: 450;
-}
-
-.site-header__subtitle a {
-  color: #38bdf8;
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.site-header__subtitle a:hover {
-  text-decoration: underline;
+.subtitle {
+  margin: 0 0 13px 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #71717a;
+  font-weight: 400;
 }
 
 .inputs {
@@ -134,29 +59,8 @@ body {
 }
 
 .inputs.panel {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  align-items: stretch;
-  gap: 0.85rem;
-  padding: 1.1rem 1.15rem 1.15rem 1.35rem;
-  border-radius: 12px;
-  border: 1px solid var(--vybe-border);
-  background: linear-gradient(165deg, rgba(18, 19, 24, 0.92) 0%, rgba(11, 11, 14, 0.98) 100%);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 36px rgba(0, 0, 0, 0.35);
-  position: relative;
-}
-
-.inputs.panel::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  border-radius: 12px 0 0 12px;
-  background: linear-gradient(180deg, #38bdf8, #6366f1);
-  opacity: 0.85;
+  gap: 0.75rem;
+  align-items: flex-end;
 }
 
 .candles-controls {
@@ -199,14 +103,14 @@ body {
 }
 
 #mint {
-  min-width: 0;
-  width: 100%;
-  max-width: 442px;
+  min-width: 420px;
 }
 
 #walletLabel,
 #walletSortDirection,
+#walletPnlSortField,
 #tokenTopPnlResolution,
+#tokenTopPnlSortField,
 #tokenTopPnlSortDirection {
   min-width: 180px;
 }
@@ -234,9 +138,9 @@ body {
 
 #walletPnlSortField,
 #tokenTopPnlSortField {
-  width: 156px;
-  min-width: 156px;
-  max-width: 156px;
+  width: 172px;
+  min-width: 172px;
+  max-width: 172px;
 }
 
 #walletSortDirection,
@@ -455,12 +359,7 @@ body {
 }
 
 .remote-top-row {
-  flex-wrap: wrap;
-}
-
-.remote-top-row .endpoint-mode-field {
-  flex: 0 0 auto;
-  min-width: 0;
+  flex-wrap: nowrap;
 }
 
 .remote-top-row .top-mode-switch {
@@ -469,7 +368,7 @@ body {
 }
 
 .remote-top-row .mint-query-field {
-  flex: 1 1 200px;
+  flex: 0 0 auto;
   min-width: 0;
   max-width: none;
 }
@@ -481,14 +380,80 @@ body {
 
 .remote-top-row .mint-query-field .field-control,
 .remote-top-row .mint-query-field input {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
+  width: 420px;
+  min-width: 420px;
 }
 
 .remote-top-row .wallet-resolution-field select {
   width: 88px;
   min-width: 88px;
+}
+
+.trades-fetch-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 1.85rem;
+  padding: 0;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  background: #18181b;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.trades-fetch-lock[aria-pressed="true"] {
+  background: #ca8a04;
+  color: #1c1917;
+  border-color: #a16207;
+}
+
+.trades-fetch-lock[aria-pressed="false"] {
+  background: #90ee90;
+  color: #1e6b1e;
+  border-color: #6bc96b;
+}
+
+.trades-fetch-lock[aria-pressed="false"]:not(.trades-fetch-lock--no-hover):hover {
+  background: #ca8a04;
+  color: #1c1917;
+  border-color: #a16207;
+}
+
+.trades-fetch-lock[aria-pressed="false"]:not(.trades-fetch-lock--no-hover):hover .trades-fetch-lock-icon--locked {
+  display: block !important;
+}
+
+.trades-fetch-lock[aria-pressed="false"]:not(.trades-fetch-lock--no-hover):hover .trades-fetch-lock-icon--unlocked {
+  display: none !important;
+}
+
+.trades-fetch-lock[aria-pressed="true"]:not(.trades-fetch-lock--no-hover):hover {
+  background: #90ee90;
+  color: #1e6b1e;
+  border-color: #6bc96b;
+}
+
+.trades-fetch-lock[aria-pressed="true"]:not(.trades-fetch-lock--no-hover):hover .trades-fetch-lock-icon--locked {
+  display: none;
+}
+
+.trades-fetch-lock[aria-pressed="true"]:not(.trades-fetch-lock--no-hover):hover .trades-fetch-lock-icon--unlocked {
+  display: block !important;
+}
+
+.trades-fetch-lock[aria-pressed="false"] .trades-fetch-lock-icon--locked {
+  display: none;
+}
+
+.trades-fetch-lock[aria-pressed="false"] .trades-fetch-lock-icon--unlocked {
+  display: block !important;
+}
+
+.trades-fetch-lock-icon--unlocked {
+  display: none;
 }
 
 .trades-fetch-switch {
@@ -513,7 +478,7 @@ body {
   background: #27272a;
   border: 1px solid #3f3f46;
   position: relative;
-  min-width: 9.25rem;
+  min-width: 7.5rem;
 }
 
 .trades-fetch-switch-track::after {
@@ -535,13 +500,7 @@ body {
 }
 
 .trades-fetch-switch-option {
-  display: inline-flex;
   flex: 1;
-  padding-left: 8px;
-  padding-right: 8px;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
   text-align: center;
   font-size: 0.75rem;
   font-weight: 500;
@@ -550,17 +509,17 @@ body {
   transition: color 0.2s;
 }
 
-.endpoint-mode-switch-icon {
-  flex-shrink: 0;
-  opacity: 0.9;
-}
-
 .trades-fetch-switch-input:not(:checked) + .trades-fetch-switch-track .trades-fetch-switch-option[data-value="single"] {
   color: #e4e4e7;
 }
 
 .trades-fetch-switch-input:checked + .trades-fetch-switch-track .trades-fetch-switch-option[data-value="paged"] {
   color: #e4e4e7;
+}
+
+.trades-fetch-switch.trades-fetch-switch--locked {
+  pointer-events: none;
+  opacity: 0.85;
 }
 
 .section-loading {
@@ -576,18 +535,6 @@ body {
 
 .section-loading[hidden] {
   display: none !important;
-}
-
-.section-header .section-loading {
-  margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  align-self: center;
-}
-
-.section-header .section-error {
-  margin: 0;
-  align-self: center;
 }
 
 .section-error {
@@ -1910,20 +1857,14 @@ button:active {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Total volume / Total trades: label + ratio use tier legend colour (swatch = solid accent for text). */
+/* Total volume / Total trades: label + primary figure use the card’s tier accent (same as left rail). */
 .token-tier-card .token-tier-metric--total .token-tier-metric__label {
-  color: var(--tier-swatch, var(--tier-accent, #7dd3fc));
+  color: var(--tier-accent, #7dd3fc);
   font-weight: 700;
 }
 
 .token-tier-card .token-tier-metric--total .token-tier-metric__vol-pnl-slice-val {
-  color: var(--tier-swatch, var(--tier-accent, #e0f2fe));
-}
-
-.token-tier-card .token-tier-metric--total .token-tier-metric__vol-pnl-totalvol-suffix {
-  color: var(--tier-swatch, var(--tier-accent, #71717a));
-  opacity: 0.72;
-  font-weight: 600;
+  color: var(--tier-accent, #e0f2fe);
 }
 
 /* Allow donut % labels to extend past card bounds (base card uses overflow: hidden). */
@@ -2437,7 +2378,7 @@ button:active {
   overflow-y: auto;
 }
 
-/* Sticky header row for related wallets and top holders */
+/* Sticky header row for Top traders and Top holders */
 .top-traders-section .table-wrap thead th,
 .holders-section .table-wrap thead th {
   position: sticky;
@@ -2509,7 +2450,7 @@ button:active {
 
 .wallet-pnl-layout {
   display: grid;
-  grid-template-columns: 2fr minmax(300px, 380px);
+  grid-template-columns: 1fr minmax(300px, 400px);
   gap: 1.1rem;
   align-items: stretch;
 }
@@ -2626,36 +2567,36 @@ button:active {
 
 .wallet-pnl-pie-wrap {
   display: grid;
-  grid-template-columns: minmax(0, clamp(160px, 19vw, 220px)) minmax(0, 1fr);
-  gap: 1rem 1.15rem;
+  grid-template-columns: minmax(0, 94px) minmax(0, 1fr);
+  gap: 1rem 1.2rem;
   align-items: center;
   padding-top: 0.1rem;
 }
 
-/* Wallet donuts: reuse token-mode `.token-supply-pie` (labels + hub). Default: same vw clamps as top-traders repo. */
-.wallet-pnl-pie-chart.token-supply-pie {
-  width: clamp(150px, 18vw, 210px);
-  flex-shrink: 0;
+/* Donut: ring uses conic-gradient; center matches card surface */
+.wallet-pnl-pie-chart {
+  position: relative;
+  width: 94px;
+  height: 94px;
+  border-radius: 50%;
+  border: none;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.55) inset,
+    0 10px 32px rgba(0, 0, 0, 0.5);
 }
 
-/* Narrow main column (e.g. 900px container): vw is viewport-wide so donuts look huge — tie size to the pie card instead. */
-@supports (width: 1cqw) {
-  .wallet-pnl-card.wallet-pnl-card--pie {
-    container-type: inline-size;
-  }
-
-  .wallet-pnl-pie-wrap {
-    grid-template-columns: minmax(0, min(32cqw, 9.875rem)) minmax(0, 1fr);
-  }
-
-  .wallet-pnl-pie-chart.token-supply-pie {
-    width: min(30cqw, 9.875rem);
-    max-width: 100%;
-  }
-}
-
-.wallet-pnl-card.wallet-pnl-card--pie {
-  overflow: visible;
+.wallet-pnl-pie-chart::after {
+  content: '';
+  position: absolute;
+  inset: 27%;
+  border-radius: 50%;
+  z-index: 1;
+  background: linear-gradient(165deg, #15151a 0%, #101014 50%, #0c0c10 100%);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  pointer-events: none;
 }
 
 /* Wallet donut legends: 1 row × 2 columns; each cell is a tier-card with stacked metrics */
@@ -3477,7 +3418,7 @@ td .mono {
   word-break: break-all;
 }
 
-/* Numeric columns: right-align header and cells (related wallets, holders) */
+/* Numeric columns: right-align header and cells so they line up (Top traders, Holders) */
 #topTradersTable th:nth-child(4),
 #topTradersTable td:nth-child(4),
 #topTradersTable th:nth-child(5),
@@ -3554,42 +3495,4 @@ html {
 *::-webkit-scrollbar-thumb {
   background-color: #71717a;
   border-radius: 999px;
-}
-
-.inputs-endpoint-mode-bar {
-  margin-bottom: 10px;
-}
-
-.construction-callout {
-  margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(234, 179, 8, 0.45);
-  background: rgba(234, 179, 8, 0.1);
-  color: #fde68a;
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
-.construction-callout strong {
-  color: #fef08a;
-}
-
-/* Endpoint mode: lock + realtime/historical, inline left of wallet search */
-.endpoint-mode-field.endpoint-mode-switcher-disabled,
-.endpoint-mode-field.endpoint-mode-switcher-disabled * {
-  cursor: not-allowed;
-}
-
-.site-header__endpoint-label {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0;
-  font-size: 0.8rem;
-  font-weight: 400;
-  color: #a1a1aa;
-  text-transform: none;
-  letter-spacing: normal;
-  opacity: 1;
 }
