@@ -10,7 +10,6 @@ Use this project as a reference implementation or starter kit for building Solan
 
 <p align="center">
   <img src="screenshots/api-for-solana-top-traders-wallets-and-token.png" alt="API for Solana Top Traders Wallets and Tokens" width="260" style="min-width:260px;max-width:260px;margin-right:10px;" />
-  <img src="screenshots/api-for-solana-top-wallet-traders.png" alt="API for Solana Top Wallet Traders" width="348" style="min-width:348px;max-width:348px;margin-right:10px;" />
   <img src="screenshots/api-for-solana-top-token-traders-and-wallets.png" alt="API for Solana Top Token Traders & Wallets" width="270" style="min-width:270px;max-width:270px;" />
 </p>
 
