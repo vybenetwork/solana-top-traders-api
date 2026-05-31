@@ -15,7 +15,7 @@
 
 html {
   overflow-x: auto;
-  min-width: 1200px;
+  min-width: 1150px;
 }
 
 body {
@@ -26,13 +26,11 @@ body {
   color: #e4e4e7;
   min-height: 100vh;
   /* Lock desktop-style layouts site-wide; narrow viewports scroll horizontally. */
-  min-width: 1200px;
+  min-width: 1150px;
 }
 
 .container {
-  width: 100%;
-  min-width: 1200px;
-  max-width: 1200px;
+  max-width: 1150px;
   margin: 0 auto;
 }
 
@@ -44,8 +42,7 @@ body {
   background: linear-gradient(155deg, rgba(24, 26, 34, 0.98) 0%, rgba(12, 13, 18, 0.99) 50%, rgba(15, 18, 28, 0.98) 100%);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 48px rgba(0, 0, 0, 0.4);
   position: relative;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: hidden;
 }
 
 .page-masthead::before {
@@ -209,7 +206,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  min-width: min-content;
+  min-width: 0;
 }
 
 .page-masthead__group--community {
@@ -1253,7 +1250,7 @@ button:not(.vybe-action-btn):active {
 
 .section-card {
   position: relative;
-  overflow: visible;
+  overflow: hidden;
   border-radius: 16px;
   border: 1px solid var(--vybe-border);
   padding: 1.35rem 1.3rem 1.2rem;
@@ -3320,7 +3317,7 @@ button:not(.vybe-action-btn):active {
 
 .wallet-pnl-pie-wrap {
   display: grid;
-  grid-template-columns: minmax(140px, 200px) minmax(300px, 1fr);
+  grid-template-columns: minmax(0, 94px) minmax(0, 1fr);
   gap: 1rem 1.2rem;
   align-items: center;
   padding-top: 0.1rem;
@@ -4232,7 +4229,7 @@ td .mono {
 /* Scrollbar: black track, grey thumb */
 html {
   overflow-x: auto;
-  min-width: 1200px;
+  min-width: 1150px;
   scrollbar-color: #71717a #000000; /* thumb, track */
   scrollbar-width: thin;
 }
