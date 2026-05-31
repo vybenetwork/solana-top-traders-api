@@ -411,7 +411,7 @@ function applySearchModeUI(): void {
   ) {
     mintInput.value = tokenMode ? DEMO_MINT : DEMO_WALLET;
   }
-  const fetchLabel = tokenMode ? 'Load token analytics' : 'Search top traders';
+  const fetchLabel = tokenMode ? 'Load Token Analytics' : 'Search Top Traders';
   if (fetchAllBtnText) fetchAllBtnText.textContent = fetchLabel;
   else fetchAllBtn.textContent = fetchLabel;
   tokenSection.hidden = !tokenMode;
