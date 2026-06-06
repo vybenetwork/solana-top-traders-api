@@ -39,7 +39,7 @@
   <meta name="twitter:image:alt" content="Solana Top Traders Wallets and Tokens API app powered by Vybe API" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="app.css?v=224" />
+  <link rel="stylesheet" href="app.css?v=225" />
 </head>
 <body>
   <div class="container">
@@ -164,9 +164,9 @@
         <span class="section-header__marker" aria-hidden="true"></span>
         <h2 class="section-header__title">Remote Filters</h2>
       </div>
-      <p class="remote-filters-help wallet-pnl-pnl-trading-lede">
+      <div class="section-lede meta remote-filters-help">
         <strong>Remote filters</strong> map directly to Vybe query params for Wallet Top Traders and Token Top PnL Traders.
-      </p>
+      </div>
 
       <div class="candles-mint-resolution-row remote-top-row">
         <div class="field field-switch top-mode-switch">
@@ -436,7 +436,7 @@
         <span class="section-header__marker" aria-hidden="true"></span>
         <h2 class="section-header__title token-supply-period-title" id="tokenSupplySelectedTitle">30 Days</h2>
       </div>
-      <p class="token-supply-period-desc wallet-pnl-pnl-trading-lede">Volume, PnL, and trade-count charts follow the resolution you pick below.</p>
+      <div class="section-lede meta token-supply-period-desc">Volume, PnL, and trade-count charts follow the resolution you pick below.</div>
       <div class="token-supply-grid token-supply-grid--trade-count-pie-row token-supply-grid--section-gap">
         <div class="token-supply-card token-supply-card--fullwidth token-supply-card--trade-tier-dash">
           <header class="token-trade-tier-dash__top">
@@ -579,7 +579,7 @@
         <span class="section-error" id="topTradersError" hidden aria-hidden="true"></span>
       </div>
       <div class="top-traders-content" id="topTradersContentWrap">
-        <p class="wallet-pnl-pnl-trading-lede" id="topTradersMeta">—</p>
+        <div class="section-lede meta" id="topTradersMeta">—</div>
         <div class="wallet-top-traders-grid" id="topTradersCards">
           <section class="token-stats-group wallet-top-trader-card">
             <h3 class="token-stats-group-title"><span>Top trader</span></h3>
@@ -592,7 +592,7 @@
             </dl>
           </section>
         </div>
-        <p class="wallet-pnl-pnl-trading-lede" id="walletPnlMeta">—</p>
+        <div class="section-lede meta" id="walletPnlMeta">—</div>
         <div class="wallet-pnl-details" id="walletPnlDetails">
           <section class="token-stats-group">
             <h3 class="token-stats-group-title"><span>Wallet PnL summary</span></h3>
@@ -620,7 +620,7 @@
         <span class="section-error" id="tokenTopPnlError" hidden aria-hidden="true"></span>
       </div>
       <div class="top-traders-content">
-        <p class="wallet-pnl-pnl-trading-lede" id="tokenTopPnlMeta">—</p>
+        <div class="section-lede meta" id="tokenTopPnlMeta">—</div>
         <div class="token-stats-group token-top-pnl-table-card">
           <h3 class="token-stats-group-title"><span>Top PnL traders</span></h3>
           <div class="table-wrap">
