@@ -64,9 +64,14 @@ const CANONICAL_POSITIVE_PNL_DIST_USD_BANDS: readonly { label: string; lower: nu
 /** Solid or `{ dark, light }` pair matching bar `linear-gradient(90deg, …)` endpoints. */
 type PieSliceSpec = string | { dark: string; light: string };
 
+/** Volume-by-PnL donut always renders at most four legend cards / slices. */
+const VOLUME_PNL_PIE_MAX_SLICES = 4;
+
 /**
- * Volume-by-PnL donut: four positive bands — top three rungs match the bar chart ($100+, $10–$100,
- * $1–$10); all positive realized PnL through $1 merges into one (0, 1] slice.
+ * Volume-by-PnL donut: four positive bands when no ≤$0 traders — top three rungs match the bar chart
+ * ($100+, $10–$100, $1–$10); all positive realized PnL through $1 merges into one (0, 1] slice.
+ * When ≤$0 traders are present, the fourth slot becomes the red ≤$0 band and (0, $10] positive PnL
+ * merges into the $1–$10 bucket (three positive + one non-positive = four total).
  */
 const VOLUME_PNL_PIE_MERGED_USD_BANDS: readonly { label: string; lower: number; upper: number }[] = [
   { label: '$100 to $1,000 PNL', lower: 100, upper: Number.POSITIVE_INFINITY },
@@ -74,6 +79,27 @@ const VOLUME_PNL_PIE_MERGED_USD_BANDS: readonly { label: string; lower: number; 
   { label: '$1 to $10 PNL', lower: 1, upper: 10 },
   { label: '> $0 to $1 PNL', lower: 0, upper: 1 },
 ];
+
+function volumePnlPiePositiveBandDefs(
+  hasNonPos: boolean,
+): readonly { label: string; lower: number; upper: number }[] {
+  if (!hasNonPos) return VOLUME_PNL_PIE_MERGED_USD_BANDS;
+  return [
+    VOLUME_PNL_PIE_MERGED_USD_BANDS[0],
+    VOLUME_PNL_PIE_MERGED_USD_BANDS[1],
+    { label: '$1 to $10 PNL', lower: 0, upper: 10 },
+  ];
+}
+
+function volumePnlPiePositiveBandIndex(pnl: number, hasNonPos: boolean): number | null {
+  if (!Number.isFinite(pnl) || pnl <= 0) return null;
+  const bands = volumePnlPiePositiveBandDefs(hasNonPos);
+  for (let i = 0; i < bands.length; i++) {
+    const b = bands[i];
+    if (pnl > b.lower && pnl <= b.upper) return i;
+  }
+  return null;
+}
 
 /** Same sweep as `.token-pnl-bar-fill--negative`. */
 const VOLUME_PNL_PIE_NONPOSITIVE_FILL: PieSliceSpec = { dark: '#dc2626', light: '#f87171' };
@@ -97,15 +123,6 @@ const _volumePnlMergedBandCount = VOLUME_PNL_PIE_MERGED_USD_BANDS.length;
 const VOLUME_PNL_PIE_MERGED_SLICE_FILLS: readonly PieSliceSpec[] = Array.from({ length: _volumePnlMergedBandCount }, (_, i) =>
   _volumePnlMergedBandCount <= 1 ? tradeScaleBarGradientPair(0) : tradeScaleBarGradientPair(i / (_volumePnlMergedBandCount - 1))
 );
-
-function volumePnlPieMergedBandIndex(pnl: number): number | null {
-  if (!Number.isFinite(pnl) || pnl <= 0) return null;
-  for (let i = 0; i < VOLUME_PNL_PIE_MERGED_USD_BANDS.length; i++) {
-    const b = VOLUME_PNL_PIE_MERGED_USD_BANDS[i];
-    if (pnl > b.lower && pnl <= b.upper) return i;
-  }
-  return null;
-}
 
 function traderRoiPercentFromRow(row: TokenTopPnlTraderRow): number | null {
   const vol = toNum(row.totalVolumeUsd);
@@ -3672,36 +3689,43 @@ function roiProfitPieRowWeight(row: TokenTopPnlTraderRow): number {
 function renderTopTraderVolumeByPnlUsdPie(rows: TokenTopPnlTraderRow[], target: { pie: HTMLElement; legend: HTMLElement }): void {
   const { pie, legend } = target;
 
-  const k = VOLUME_PNL_PIE_MERGED_USD_BANDS.length;
-  const weightByBand = new Array(k).fill(0);
-  const realizedSumByBand = new Array(k).fill(0);
-  const tradersByBand = new Array(k).fill(0);
-  const tradesByBand = new Array(k).fill(0);
-  let nonPosWeight = 0;
-  let nonPosRealized = 0;
-  let nonPosTraders = 0;
-  let nonPosTrades = 0;
+  let hasNonPos = false;
+  for (const row of rows) {
+    const w = roiProfitPieRowWeight(row);
+    if (w <= 0) continue;
+    const pnl = toNum(row.realizedPnlUsd);
+    if (!Number.isFinite(pnl) || pnl <= 0) {
+      hasNonPos = true;
+      break;
+    }
+  }
+
+  const nonPosSlot = VOLUME_PNL_PIE_MAX_SLICES - 1;
+  const weightByBand = new Array(VOLUME_PNL_PIE_MAX_SLICES).fill(0);
+  const realizedSumByBand = new Array(VOLUME_PNL_PIE_MAX_SLICES).fill(0);
+  const tradersByBand = new Array(VOLUME_PNL_PIE_MAX_SLICES).fill(0);
+  const tradesByBand = new Array(VOLUME_PNL_PIE_MAX_SLICES).fill(0);
 
   for (const row of rows) {
     const w = roiProfitPieRowWeight(row);
     if (w <= 0) continue;
     const pnl = toNum(row.realizedPnlUsd);
     const tc = Math.max(0, Math.round(toNum(row.tradesCount)));
-    const idx = volumePnlPieMergedBandIndex(pnl);
+    const idx = volumePnlPiePositiveBandIndex(pnl, hasNonPos);
     if (idx != null) {
       weightByBand[idx] += w;
       realizedSumByBand[idx] += pnl;
       tradersByBand[idx] += 1;
       tradesByBand[idx] += tc;
-    } else {
-      nonPosWeight += w;
-      nonPosRealized += pnl;
-      nonPosTraders += 1;
-      nonPosTrades += tc;
+    } else if (hasNonPos) {
+      weightByBand[nonPosSlot] += w;
+      realizedSumByBand[nonPosSlot] += pnl;
+      tradersByBand[nonPosSlot] += 1;
+      tradesByBand[nonPosSlot] += tc;
     }
   }
 
-  const totalWeight = weightByBand.reduce((a, b) => a + b, 0) + nonPosWeight;
+  const totalWeight = weightByBand.reduce((a, b) => a + b, 0);
   if (totalWeight <= 0) {
     pie.style.background = buildPieGradientWithGaps([1], ['#27272a']);
     clearDonutPieOverlays(pie);
@@ -3714,14 +3738,20 @@ function renderTopTraderVolumeByPnlUsdPie(rows: TokenTopPnlTraderRow[], target: 
   }
 
   const hubLine = `${formatUsdFull(totalWeight)} volume`;
-  const sliceWeights = nonPosWeight > 0 ? [...weightByBand, nonPosWeight] : [...weightByBand];
-  const sliceFills: PieSliceSpec[] =
-    nonPosWeight > 0 ? [...VOLUME_PNL_PIE_MERGED_SLICE_FILLS, VOLUME_PNL_PIE_NONPOSITIVE_FILL] : [...VOLUME_PNL_PIE_MERGED_SLICE_FILLS];
-  const slicePcts = sliceWeights.map((v) => (v / totalWeight) * 100);
+  const bandDefs = volumePnlPiePositiveBandDefs(hasNonPos);
+  const nonPosLabel = 'At or below $0 realized PnL';
+  const sliceFills: PieSliceSpec[] = hasNonPos
+    ? [
+        VOLUME_PNL_PIE_MERGED_SLICE_FILLS[0],
+        VOLUME_PNL_PIE_MERGED_SLICE_FILLS[1],
+        VOLUME_PNL_PIE_MERGED_SLICE_FILLS[2],
+        VOLUME_PNL_PIE_NONPOSITIVE_FILL,
+      ]
+    : [...VOLUME_PNL_PIE_MERGED_SLICE_FILLS];
+  const slicePcts = weightByBand.map((v) => (v / totalWeight) * 100);
 
   pie.style.background = buildPieGradientWithGaps(slicePcts, sliceFills);
 
-  const nonPosLabel = 'At or below $0 realized PnL';
   const legendRows: {
     label: string;
     pct: number;
@@ -3730,26 +3760,29 @@ function renderTopTraderVolumeByPnlUsdPie(rows: TokenTopPnlTraderRow[], target: 
     fill: PieSliceSpec;
     traders: number;
     trades: number;
-  }[] = VOLUME_PNL_PIE_MERGED_USD_BANDS.map((def, i) => ({
-    label: def.label,
-    pct: slicePcts[i],
-    w: weightByBand[i],
-    realizedUsd: realizedSumByBand[i],
-    fill: VOLUME_PNL_PIE_MERGED_SLICE_FILLS[i] ?? '#27272a',
-    traders: tradersByBand[i],
-    trades: tradesByBand[i],
-  }));
-  if (nonPosWeight > 0) {
-    legendRows.push({
-      label: nonPosLabel,
-      pct: slicePcts[k],
-      w: nonPosWeight,
-      realizedUsd: nonPosRealized,
-      fill: VOLUME_PNL_PIE_NONPOSITIVE_FILL,
-      traders: nonPosTraders,
-      trades: nonPosTrades,
-    });
-  }
+  }[] = Array.from({ length: VOLUME_PNL_PIE_MAX_SLICES }, (_, i) => {
+    if (hasNonPos && i === nonPosSlot) {
+      return {
+        label: nonPosLabel,
+        pct: slicePcts[i],
+        w: weightByBand[i],
+        realizedUsd: realizedSumByBand[i],
+        fill: VOLUME_PNL_PIE_NONPOSITIVE_FILL,
+        traders: tradersByBand[i],
+        trades: tradesByBand[i],
+      };
+    }
+    const def = bandDefs[i];
+    return {
+      label: def.label,
+      pct: slicePcts[i],
+      w: weightByBand[i],
+      realizedUsd: realizedSumByBand[i],
+      fill: sliceFills[i] ?? '#27272a',
+      traders: tradersByBand[i],
+      trades: tradesByBand[i],
+    };
+  });
 
   legend.innerHTML = legendRows
     .map((row) =>
