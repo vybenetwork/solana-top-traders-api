@@ -1,4 +1,4 @@
-# Solana Top Traders Wallets & Tokens API
+# Solana Top Traders API
 
 This repository demonstrates how to use the Vybe Solana Top Traders and Trades APIs to fetch, rank, and explore high-performing wallets by either token mint (**token mode**) or wallet query (**wallet mode**). It includes a production-ready Node.js backend and a modern frontend that show how to integrate Vybe’s top-trader leaderboard, token metadata, trade context, and holders data to build a practical trader discovery UI.
 
