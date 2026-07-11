@@ -1,5 +1,14 @@
 # Solana Top Traders API
 
+<p align="center">
+
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/vybenetwork/solana-top-traders-wallets-and-tokens-api)
+[![Demo](https://img.shields.io/badge/Demo-Live%20app-22c55e?style=for-the-badge&logo=googlechrome&logoColor=white)](https://solana-top-traders-api.vybenetwork.com)
+[![Telegram](https://img.shields.io/badge/Telegram-VybeNetwork-26A5E4?style=for-the-badge&logo=telegram)](https://t.me/VybeNetwork_Official)
+[![X](https://img.shields.io/badge/X-Vybe__Network-000000?style=for-the-badge&logo=x)](https://x.com/Vybe_Network)
+
+</p>
+
 This repository demonstrates how to use the Vybe Solana Top Traders and Trades APIs to fetch, rank, and explore high-performing wallets by either token mint (**token mode**) or wallet query (**wallet mode**). It includes a production-ready Node.js backend and a modern frontend that show how to integrate Vybe’s top-trader leaderboard, token metadata, trade context, and holders data to build a practical trader discovery UI.
 
 Try the live demo: https://solana-top-traders-api.vybenetwork.com
