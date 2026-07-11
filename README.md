@@ -249,5 +249,6 @@ solana-top-traders-wallets-and-tokens-api/
 
 ## Support
 
+- **Telegram:** [Vybe community](https://t.me/vybenetwork)
 - **Support ticket:** [Submit a ticket](https://vybenetwork.com)
 
