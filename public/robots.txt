@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://solana-top-traders-api.vybenetwork.com/sitemap.xml
