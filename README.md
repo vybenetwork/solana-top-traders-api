@@ -62,7 +62,7 @@ Then open **http://localhost:3000**, choose **Token** or **Wallet** mode, and cl
 | `PORT`           | No       | HTTP server port                                                | `3000`                                 |
 | `TUNNEL`         | No       | Set to `1` to run behind a Cloudflare Tunnel                     | `1`                                    |
 
-Get your API key at `https://vybe.fyi/api-pricing?utm_source=top-traders-api-readme&utm_medium=referral`.
+Get your API key at [`https://vybe.fyi/api-pricing`](https://vybe.fyi/api-pricing?utm_source=top-traders-api-readme&utm_medium=referral).
 
 ---
 
