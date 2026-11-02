@@ -2,7 +2,7 @@
 
 <p align="center">
 
-[![Demo](https://img.shields.io/badge/Demo-Solana%20Top%20Traders%20API%20live%20app-c2410c?style=for-the-badge&logo=googlechrome&logoColor=white)](https://solana-top-traders-api.vybenetwork.com)
+[![Demo](https://img.shields.io/badge/Demo-Solana%20Top%20Traders%20API%20live%20app-c2410c?style=for-the-badge&logo=googlechrome&logoColor=white)](https://solana-top-traders-api.vybenetwork.com?utm_source=top-traders-api-readme&utm_medium=referral)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-5b21b6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vybenetwork/solana-top-traders-api)
 [![Top traders guide](https://img.shields.io/badge/Guides-Top%20traders%20and%20PnL-3b82f6?style=for-the-badge&logo=gitbook&logoColor=white)](https://docs.vybenetwork.com/docs/top-traders-pnl)
 [![Top traders API](https://img.shields.io/badge/Endpoint-Top%20traders-6366f1?style=for-the-badge&logo=swagger&logoColor=white)](https://docs.vybenetwork.com/reference/get_top_traders_v4)
@@ -12,7 +12,7 @@
 
 This repository demonstrates how to use the Vybe Solana Top Traders and Trades APIs to fetch, rank, and explore high-performing wallets by either token mint (**token mode**) or wallet query (**wallet mode**). It includes a production-ready Node.js backend and a modern frontend that show how to integrate Vybe’s top-trader leaderboard, token metadata, trade context, and holders data to build a practical trader discovery UI.
 
-Try the live demo: https://solana-top-traders-api.vybenetwork.com
+Try the live demo: [`https://solana-top-traders-api.vybenetwork.com`](https://solana-top-traders-api.vybenetwork.com?utm_source=top-traders-api-readme&utm_medium=referral)
 
 Use this project as a reference implementation or starter kit for building Solana trader discovery tools, wallet intelligence dashboards, and PnL/flow analysis products powered by Vybe’s high-performance Solana data APIs.
 
@@ -26,7 +26,7 @@ Use this project as a reference implementation or starter kit for building Solan
 
 ---
 
-**[Try the LIVE demo →](https://solana-top-traders-api.vybenetwork.com)**
+**[Try the LIVE demo →](https://solana-top-traders-api.vybenetwork.com?utm_source=top-traders-api-readme&utm_medium=referral)**
 
 **[Get your free Vybe API key →](https://vybe.fyi/api-pricing?utm_source=top-traders-api-readme&utm_medium=referral)**  
 
