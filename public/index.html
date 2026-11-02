@@ -5,14 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       @media (max-width: 1179px) {
-        html {
-          zoom: calc(100vw / 1400);
-          background: #070708;
-          text-size-adjust: 100%;
-          -webkit-text-size-adjust: 100%;
-        }
+        html { background: #070708; }
       }
     </style>
+    <script>
+      (function () {
+        var LAYOUT = 1500;
+        function fit() {
+          var w = window.innerWidth;
+          if (document.documentElement.clientWidth) w = Math.min(w, document.documentElement.clientWidth);
+          if (window.visualViewport) w = Math.min(w, window.visualViewport.width);
+          var html = document.documentElement;
+          if (w >= 1180) html.style.zoom = "";
+          else html.style.zoom = String(w / LAYOUT);
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        if (window.visualViewport) window.visualViewport.addEventListener("resize", fit);
+      })();
+    </script>
   <title>Solana Top Traders API</title>
   <meta name="description" content="Discover top Solana traders by token mint or wallet with Vybe Solana API leaderboards, realized PnL, trade context, holder snapshots and exportable rankings." />
   <meta name="keywords" content="Solana top traders, trader leaderboard API, Vybe API, wallet discovery, realized PnL, SPL token, Token-2022, on-chain analytics" />
