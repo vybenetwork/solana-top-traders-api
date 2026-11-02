@@ -4,8 +4,9 @@
 
 [![Demo](https://img.shields.io/badge/Demo-Solana%20Top%20Traders%20API%20live%20app-c2410c?style=for-the-badge&logo=googlechrome&logoColor=white)](https://solana-top-traders-api.vybenetwork.com)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-5b21b6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/vybenetwork/solana-top-traders-api)
-[![Top traders guide](https://img.shields.io/badge/Guides-Top%20traders%20and%20PnL-3b82f6?style=for-the-badge&logo=gitbook&logoColor=white)](https://docs.vybenetwork.com/docs/top-traders-pnl)
+[![Top traders guide](https://img.shields.io/badge/Guides-Top%20traders%20and%20PnL-1e40af?style=for-the-badge&logo=gitbook&logoColor=white)](https://docs.vybenetwork.com/docs/top-traders-pnl)
 [![Top traders API](https://img.shields.io/badge/Endpoint-Top%20traders-6366f1?style=for-the-badge&logo=swagger&logoColor=white)](https://docs.vybenetwork.com/reference/get_top_traders_v4)
+[![API Key](https://img.shields.io/badge/API%20Key-Get%20yours-047857?style=for-the-badge)](https://vybe.fyi/api-pricing?utm_source=top-traders-api-readme&utm_medium=referral)
 [![X](https://img.shields.io/badge/X-Vybe__Network-000000?style=for-the-badge&logo=x)](https://x.com/Vybe_Network)
 </p>
 
