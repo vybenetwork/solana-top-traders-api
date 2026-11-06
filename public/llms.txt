@@ -2,10 +2,27 @@
 
 > Discover top Solana traders by token mint or wallet with Vybe Solana API leaderboards, realized PnL, trade context, holder snapshots and exportable rankings.
 
-Live demo of the Vybe Solana API. The linked docs pages are the Markdown versions.
+This is a free demo that showcases the Vybe trader endpoints. Open it in the browser to test and demo them. Nothing to install. The linked docs pages are the Markdown versions.
+
+## What this demo shows
+Look up a mint for its top PnL traders, or a wallet for its rank among top traders and its own profit and loss. Realized PnL, volume, and trade count follow the window you pick, on every row. Windows in the tables are 1d, 7d, and 30d.
+
+- Mint leaderboard: wallets ranked by realized PnL on the mint you enter.
+- Wallet rank: where that wallet sits on the top-trader list for the window.
+- Realized PnL: realized and unrealized PnL, volume, and trade count.
+- Wallet detail: per-wallet profit and loss when the lookup is a wallet address.
+
+## Endpoints this demo calls
+- Top Traders API: `GET /v4/wallets/top-traders`
+- Historical Trades API: `GET /v4/trades`
+- Token Details API: `GET /v4/tokens/{mintAddress}`
+- Top Token Holders API: `GET /v4/tokens/{mintAddress}/top-holders`
+- Labeled Programs API: `GET /v4/programs/labeled-program-accounts`
+
+The demo page is free to use. Top Traders is on the Free plan, the lowest tier. A free API key starts the first calls. Paid plans raise the rate limit.
 
 ## Demo
-- [Solana Top Traders API](https://solana-top-traders-api.vybenetwork.com/): Discover top Solana traders by token mint or wallet with Vybe Solana API leaderboards, realized PnL, trade context, holder snapshots and exportable rankings.
+- [Solana Top Traders API](https://solana-top-traders-api.vybenetwork.com/): Free browser demo of the trader endpoints. Look up a mint or a wallet for 1d, 7d, or 30d.
 
 ## Docs
 - [Top Traders & PnL Guide](https://docs.vybenetwork.com/docs/top-traders-pnl.md)
